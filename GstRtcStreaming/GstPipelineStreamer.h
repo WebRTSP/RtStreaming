@@ -10,7 +10,7 @@ public:
     GstPipelineStreamer(const std::string& pipeline);
 
 protected:
-    void prepare() override;
+    void prepare() noexcept override;
 
 private:
     const std::string _pipeline;

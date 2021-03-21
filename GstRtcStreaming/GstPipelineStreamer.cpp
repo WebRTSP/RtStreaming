@@ -14,7 +14,7 @@
 #include "Helpers.h"
 
 
-void GstPipelineStreamer::prepare()
+void GstPipelineStreamer::prepare() noexcept
 {
     GError* parseError = nullptr;
     GstElementPtr pipelinePtr(gst_parse_launch(_pipeline.c_str(), &parseError));

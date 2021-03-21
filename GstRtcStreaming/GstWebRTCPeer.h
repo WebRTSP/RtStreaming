@@ -45,7 +45,7 @@ protected:
     void onOfferCreated(GstPromise*);
     void onSetRemoteDescription(GstPromise*);
 
-    virtual void prepare() = 0;
+    virtual void prepare() noexcept = 0;
 
 private:
     gboolean onBusMessage(GstBus*, GstMessage*);

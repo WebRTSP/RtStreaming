@@ -13,7 +13,7 @@
 #include "Helpers.h"
 
 
-void GstTestStreamer::prepare()
+void GstTestStreamer::prepare() noexcept
 {
     std::string usePattern = "smpte";
     if(_pattern == "bars")
