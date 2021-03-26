@@ -13,6 +13,13 @@
 #include "Helpers.h"
 
 
+GstTestStreamer::GstTestStreamer(
+    const std::string& pattern,
+    GstRtcStreaming::Videocodec videocodec) :
+    _pattern(pattern), _videocodec(videocodec)
+{
+}
+
 void GstTestStreamer::prepare() noexcept
 {
     std::string usePattern = "smpte";
@@ -60,11 +67,4 @@ void GstTestStreamer::prepare() noexcept
     setWebRtcBin(std::move(rtcbinPtr));
 
     pause();
-}
-
-GstTestStreamer::GstTestStreamer(
-    const std::string& pattern,
-    GstRtcStreaming::Videocodec videocodec) :
-    _pattern(pattern), _videocodec(videocodec)
-{
 }

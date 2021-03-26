@@ -14,6 +14,11 @@
 #include "Helpers.h"
 
 
+GstPipelineStreamer::GstPipelineStreamer(const std::string& pipeline) :
+    _pipeline(pipeline)
+{
+}
+
 void GstPipelineStreamer::prepare() noexcept
 {
     GError* parseError = nullptr;
@@ -46,10 +51,4 @@ void GstPipelineStreamer::prepare() noexcept
     setWebRtcBin(std::move(rtcbinPtr));
 
     pause();
-}
-
-GstPipelineStreamer::GstPipelineStreamer(
-    const std::string& pipeline) :
-    _pipeline(pipeline)
-{
 }
