@@ -16,6 +16,7 @@
 GstTestStreamer::GstTestStreamer(
     const std::string& pattern,
     GstRtcStreaming::Videocodec videocodec) :
+    GstWebRTCPeer(Role::Streamer),
     _pattern(pattern), _videocodec(videocodec)
 {
 }

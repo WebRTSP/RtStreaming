@@ -13,6 +13,7 @@
 
 
 GstReStreamer::GstReStreamer(const std::string& sourceUrl) :
+    GstWebRTCPeer(Role::Streamer),
     _sourceUrl(sourceUrl)
 {
 }

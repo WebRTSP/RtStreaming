@@ -25,6 +25,12 @@ protected:
         const std::string& candidate,
         std::string* resolvedCandidate);
 
+    enum class Role {
+        Viewer,
+        Streamer
+    };
+
+    GstWebRTCPeer(Role);
     ~GstWebRTCPeer();
 
     void setPipeline(GstElementPtr&&) noexcept;
@@ -40,21 +46,47 @@ protected:
     void play() noexcept;
     void stop() noexcept;
 
-    void onNegotiationNeeded();
-    void onIceGatheringStateChanged();
-    void onOfferCreated(GstPromise*);
-    void onSetRemoteDescription(GstPromise*);
-
     virtual void prepare() noexcept = 0;
 
 private:
-    gboolean onBusMessage(GstBus*, GstMessage*);
+    gboolean onBusMessage(GstMessage*);
 
+    static void onNegotiationNeeded(
+        GstElement* rtcbin);
+    static void onIceGatheringStateChanged(
+        GstElement* rtcbin);
+
+    static void postIceCandidate(
+        GstElement* rtcbin,
+        guint mlineIndex,
+        const gchar* candidate);
+    static void postSdp(
+        GstElement* rtcbin,
+        const gchar* sdp);
+    static void postEos(
+        GstElement* rtcbin,
+        gboolean error);
+
+    static void onOfferCreated(
+        GstElement* rtcbin,
+        GstPromise*);
+    static void onAnswerCreated(
+        GstElement* rtcbin,
+        GstPromise*);
+    static void onSetRemoteDescription(
+        GstElement* rtcbin,
+        GstPromise*);
+
+    void onIceCandidate(
+        unsigned mlineIndex,
+        const gchar* candidate);
+    void onSdp(const gchar* sdp);
     void onPrepared();
-    void onIceCandidate(unsigned mlineIndex, const std::string& candidate);
     void onEos(bool error);
 
 private:
+    const Role _role;
+
     std::deque<std::string> _iceServers;
     PreparedCallback _preparedCallback;
     IceCandidateCallback _iceCandidateCallback;
@@ -62,11 +94,6 @@ private:
 
     GstElementPtr _pipelinePtr;
     GstElementPtr _rtcbinPtr;
-
-    GstBusPtr _busPtr;
-    guint _busWatchId = 0;
-
-    gulong iceGatheringStateChangedHandlerId = 0;
 
     std::string _sdp;
 };

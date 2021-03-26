@@ -15,6 +15,7 @@
 
 
 GstPipelineStreamer::GstPipelineStreamer(const std::string& pipeline) :
+    GstWebRTCPeer(Role::Streamer),
     _pipeline(pipeline)
 {
 }
