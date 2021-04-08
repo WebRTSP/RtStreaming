@@ -484,6 +484,11 @@ void GstWebRTCPeer::onAnswerCreated(
         &sessionDescription, NULL);
     GstWebRTCSessionDescriptionPtr sessionDescriptionPtr(sessionDescription);
 
+    if(!sessionDescription) {
+        postEos(rtcbin, true);
+        return;
+    }
+
     g_signal_emit_by_name(rtcbin,
         "set-local-description", sessionDescription, NULL);
 
