@@ -528,6 +528,8 @@ void GstWebRTCPeer::onSetRemoteDescription(
     switch(state) {
     case GST_WEBRTC_SIGNALING_STATE_STABLE:
         break;
+    case GST_WEBRTC_SIGNALING_STATE_HAVE_LOCAL_OFFER:
+        break;
     case GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_OFFER: {
         auto onAnswerCreatedCallback =
             (void (*) (GstPromise*, gpointer))
