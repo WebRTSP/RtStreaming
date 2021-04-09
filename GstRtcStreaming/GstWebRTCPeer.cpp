@@ -590,17 +590,9 @@ void GstWebRTCPeer::setRemoteSdp(const std::string& sdp) noexcept
         "set-remote-description", sessionDescription, promise);
 }
 
-bool GstWebRTCPeer::sdp(std::string* sdp) noexcept
+const std::string& GstWebRTCPeer::sdp() noexcept
 {
-    if(!sdp)
-        return false;
-
-    if(_sdp.empty())
-        return false;
-
-    *sdp = _sdp;
-
-    return true;
+    return _sdp;
 }
 
 void GstWebRTCPeer::addIceCandidate(

@@ -20,7 +20,7 @@ struct WebRTCPeer
         const IceCandidateCallback&,
         const EosCallback&) noexcept = 0;
 
-    virtual bool sdp(std::string* sdp) noexcept = 0;
+    virtual const std::string& sdp() noexcept = 0;
 
     virtual void setRemoteSdp(const std::string& sdp) noexcept = 0;
     virtual void addIceCandidate(

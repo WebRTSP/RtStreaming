@@ -18,7 +18,7 @@ public:
 
     void setRemoteSdp(const std::string& sdp) noexcept override;
     void addIceCandidate(unsigned mlineIndex, const std::string& candidate) noexcept override;
-    bool sdp(std::string* sdp) noexcept override;
+    const std::string& sdp() noexcept override;
 
 protected:
     static void ResolveIceCandidate(
