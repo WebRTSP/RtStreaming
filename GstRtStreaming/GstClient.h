@@ -3,7 +3,7 @@
 #include <memory>
 #include <functional>
 
-#include "RtcStreaming/WebRTCPeer.h"
+#include "../WebRTCPeer.h"
 
 #include "GstWebRTCPeer.h"
 

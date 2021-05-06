@@ -4,7 +4,7 @@
 #include <gst/pbutils/pbutils.h>
 
 
-namespace GstRtcStreaming
+namespace GstRtStreaming
 {
 
 IceServerType ParseIceServerType(const std::string& iceServer)

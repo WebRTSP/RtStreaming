@@ -1,7 +1,7 @@
 #pragma once
 
 
-namespace GstRtcStreaming
+namespace GstRtStreaming
 {
 
 enum class Videocodec {

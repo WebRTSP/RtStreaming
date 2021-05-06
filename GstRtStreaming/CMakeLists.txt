@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(GstRtcStreaming)
+project(GstRtStreaming)
 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLIB REQUIRED glib-2.0)
@@ -28,4 +28,5 @@ target_link_libraries(${PROJECT_NAME}
     ${GSTREAMER_LDFLAGS}
     ${GSTREAMER_SDP_LDFLAGS}
     ${GSTREAMER_WEBRTC_LDFLAGS}
-    ${GSTREAMER_PBUTILS_LDFLAGS})
+    ${GSTREAMER_PBUTILS_LDFLAGS}
+    CxxPtr)

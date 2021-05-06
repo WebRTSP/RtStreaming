@@ -15,7 +15,7 @@
 
 GstTestStreamer::GstTestStreamer(
     const std::string& pattern,
-    GstRtcStreaming::Videocodec videocodec) :
+    GstRtStreaming::Videocodec videocodec) :
     GstWebRTCPeer(Role::Streamer),
     _pattern(pattern), _videocodec(videocodec)
 {
@@ -36,7 +36,7 @@ void GstTestStreamer::prepare() noexcept
     }
 
     const char* pipelineDesc;
-    if(_videocodec == GstRtcStreaming::Videocodec::h264) {
+    if(_videocodec == GstRtStreaming::Videocodec::h264) {
         pipelineDesc =
             "videotestsrc name=src ! "
             "x264enc ! video/x-h264, profile=baseline ! rtph264pay pt=96 ! "

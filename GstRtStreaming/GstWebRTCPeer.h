@@ -4,7 +4,7 @@
 
 #include "CxxPtr/GstPtr.h"
 
-#include "RtcStreaming/WebRTCPeer.h"
+#include "../WebRTCPeer.h"
 
 
 class GstWebRTCPeer : public WebRTCPeer

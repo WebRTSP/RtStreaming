@@ -400,7 +400,7 @@ void GstWebRTCPeer::setIceServers()
         vMajor > 1 || (vMajor == 1 && vMinor >= 16);
 
     for(const std::string& iceServer: _iceServers) {
-        using namespace GstRtcStreaming;
+        using namespace GstRtStreaming;
         switch(ParseIceServerType(iceServer)) {
             case IceServerType::Stun:
                 g_object_set(

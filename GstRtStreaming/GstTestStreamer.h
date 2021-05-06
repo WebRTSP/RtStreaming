@@ -9,12 +9,12 @@ class GstTestStreamer : public GstWebRTCPeer
 public:
     GstTestStreamer(
         const std::string& pattern = std::string(),
-        GstRtcStreaming::Videocodec videocodec = GstRtcStreaming::Videocodec::h264);
+        GstRtStreaming::Videocodec videocodec = GstRtStreaming::Videocodec::h264);
 
 protected:
     void prepare() noexcept override;
 
 private:
     const std::string _pattern;
-    GstRtcStreaming::Videocodec _videocodec;
+    GstRtStreaming::Videocodec _videocodec;
 };
