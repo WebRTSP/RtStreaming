@@ -5,6 +5,7 @@
 
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
+#include <gst/webrtc/webrtc_fwd.h>
 
 #include <CxxPtr/GlibPtr.h>
 #include <CxxPtr/GstPtr.h>
