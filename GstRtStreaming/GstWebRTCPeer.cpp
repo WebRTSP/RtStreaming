@@ -112,6 +112,11 @@ GstWebRTCPeer::GstWebRTCPeer(Role role) :
 GstWebRTCPeer::~GstWebRTCPeer()
 {
     stop();
+
+    if(GstElement* pipeline = _pipelinePtr.get()) {
+        GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
+        gst_bus_remove_watch(busPtr.get());
+    }
 }
 
 void GstWebRTCPeer::setState(GstState state) noexcept
