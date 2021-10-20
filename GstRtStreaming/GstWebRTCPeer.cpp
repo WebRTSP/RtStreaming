@@ -10,6 +10,7 @@
 #include <gst/webrtc/rtptransceiver.h>
 
 #include <CxxPtr/GlibPtr.h>
+#include <CxxPtr/GstWebRtcPtr.h>
 
 #include "Helpers.h"
 

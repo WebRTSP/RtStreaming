@@ -9,6 +9,7 @@
 
 #include <CxxPtr/GlibPtr.h>
 #include <CxxPtr/GstPtr.h>
+#include <CxxPtr/GstWebRtcPtr.h>
 
 #include "LibGst.h"
 
