@@ -1,8 +1,5 @@
 #pragma once
 
-#include <memory>
-#include <functional>
-
 #include "GstWebRTCPeer.h"
 
 
