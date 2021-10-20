@@ -22,8 +22,7 @@ void GstClient::prepare() noexcept
     GstElementPtr rtcbinPtr(gst_element_factory_make("webrtcbin", "clientrtcbin"));
     GstElement* rtcbin = rtcbinPtr.get();
 
-    gst_bin_add_many(GST_BIN(pipeline), rtcbin, NULL);
-    gst_object_ref(rtcbin);
+    gst_bin_add_many(GST_BIN(pipeline), GST_ELEMENT(gst_object_ref(rtcbin)), NULL);
 
     GstCapsPtr capsPtr(gst_caps_from_string("application/x-rtp, media=video"));
     GstWebRTCRTPTransceiver* recvonlyTransceiver = nullptr;
