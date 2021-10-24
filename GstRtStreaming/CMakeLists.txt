@@ -10,6 +10,7 @@ pkg_search_module(GSTREAMER_WEBRTC REQUIRED gstreamer-webrtc-1.0)
 pkg_search_module(GSTREAMER_PBUTILS REQUIRED gstreamer-pbutils-1.0)
 
 file(GLOB SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    *.c
     *.cpp
     *.h
     *.cmake)
