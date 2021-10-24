@@ -13,11 +13,12 @@
 class GstStreamingSource
 {
 public:
+    virtual ~GstStreamingSource();
+
     std::unique_ptr<WebRTCPeer> createPeer() noexcept;
 
 protected:
     GstStreamingSource();
-    ~GstStreamingSource();
 
     void setPipeline(GstElementPtr&&) noexcept;
     GstElement* pipeline() const noexcept;
