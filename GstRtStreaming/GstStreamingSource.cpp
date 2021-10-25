@@ -22,6 +22,11 @@ GstStreamingSource::GstStreamingSource()
 GstStreamingSource::~GstStreamingSource()
 {
     assert(_peers.empty());
+
+    if(GstElement* pipeline = _pipelinePtr.get()) {
+        GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
+        gst_bus_remove_watch(busPtr.get());
+    }
 }
 
 gboolean GstStreamingSource::onBusMessage(GstMessage* message)
