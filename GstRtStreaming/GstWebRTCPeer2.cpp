@@ -29,8 +29,9 @@ GstWebRTCPeer2::GstWebRTCPeer2(
             owner->_teePtr.reset(GST_ELEMENT(g_object_ref(tee))),
             owner->internalPrepare();
         };
-    g_signal_connect(_messageProxy, "tee",
-        G_CALLBACK(onTeeCallback), this);
+    _teeHandlerId =
+        g_signal_connect(_messageProxy, "tee",
+            G_CALLBACK(onTeeCallback), this);
 
     auto onMessageCallback =
         (void (*) (MessageProxy*, GstMessage*, gpointer))
@@ -38,8 +39,9 @@ GstWebRTCPeer2::GstWebRTCPeer2(
             GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
             return owner->onMessage(message);
         };
-    g_signal_connect(_messageProxy, "message",
-        G_CALLBACK(onMessageCallback), this);
+    _messageHandlerId =
+        g_signal_connect(_messageProxy, "message",
+            G_CALLBACK(onMessageCallback), this);
 
     auto onEosCallback =
         (void (*) (MessageProxy*, gboolean, gpointer))
@@ -47,8 +49,9 @@ GstWebRTCPeer2::GstWebRTCPeer2(
             GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
             return owner->onEos(error);
         };
-    g_signal_connect(_messageProxy, "eos",
-        G_CALLBACK(onEosCallback), this);
+    _eosHandlerId =
+        g_signal_connect(_messageProxy, "eos",
+            G_CALLBACK(onEosCallback), this);
 }
 
 namespace {
@@ -99,6 +102,10 @@ RemovePeerElements(
 
 GstWebRTCPeer2::~GstWebRTCPeer2()
 {
+    g_signal_handler_disconnect(_messageProxy, _teeHandlerId);
+    g_signal_handler_disconnect(_messageProxy, _messageHandlerId);
+    g_signal_handler_disconnect(_messageProxy, _eosHandlerId);
+
     g_object_unref(_messageProxy);
 
     TeardownData* data = new TeardownData {

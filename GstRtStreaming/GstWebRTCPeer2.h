@@ -87,6 +87,9 @@ private:
 
 private:
     MessageProxy* _messageProxy;
+    gulong _teeHandlerId = 0;
+    gulong _messageHandlerId = 0;
+    gulong _eosHandlerId = 0;
 
     std::deque<std::string> _iceServers;
     PreparedCallback _preparedCallback;
