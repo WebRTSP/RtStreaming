@@ -108,6 +108,9 @@ GstWebRTCPeer2::~GstWebRTCPeer2()
 
     g_object_unref(_messageProxy);
 
+    if(!_teePtr)
+        return; // nothing to teardown
+
     TeardownData* data = new TeardownData {
         .pipelinePtr = std::move(_pipelinePtr),
         .teePtr = std::move(_teePtr),
