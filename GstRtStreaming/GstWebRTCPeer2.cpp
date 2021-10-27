@@ -190,6 +190,10 @@ void GstWebRTCPeer2::postIceCandidate(
     guint mlineIndex,
     const gchar* candidate)
 {
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    if(!busPtr)
+        return;
+
     GValue candidateValue = G_VALUE_INIT;
     g_value_init(&candidateValue, G_TYPE_STRING);
     g_value_take_string(&candidateValue, g_strdup(candidate));
@@ -213,7 +217,6 @@ void GstWebRTCPeer2::postIceCandidate(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
     gst_bus_post(busPtr.get(), message);
 }
 
@@ -223,6 +226,10 @@ void GstWebRTCPeer2::postSdp(
     GstElement* rtcbin,
     const gchar* sdp)
 {
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    if(!busPtr)
+        return;
+
     GValue sdpValue = G_VALUE_INIT;
     g_value_init(&sdpValue, G_TYPE_STRING);
     g_value_take_string(&sdpValue, g_strdup(sdp));
@@ -243,7 +250,6 @@ void GstWebRTCPeer2::postSdp(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
     gst_bus_post(busPtr.get(), message);
 }
 
@@ -253,6 +259,10 @@ void GstWebRTCPeer2::postEos(
     GstElement* rtcbin,
     gboolean error)
 {
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    if(!busPtr)
+        return;
+
     GstStructure* structure =
         gst_structure_new(
             "eos",
@@ -267,7 +277,6 @@ void GstWebRTCPeer2::postEos(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
     gst_bus_post(busPtr.get(), message);
 }
 
