@@ -617,6 +617,8 @@ void GstWebRTCPeer2::internalPrepare() noexcept
     GstElement* pipeline = this->pipeline();
     GstElement* tee = this->tee();
 
+    assert(pipeline && tee);
+
     assert(!webRtcBin());
     if(webRtcBin()) {
         onEos(true);
