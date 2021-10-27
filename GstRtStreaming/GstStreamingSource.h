@@ -33,9 +33,6 @@ protected:
 private:
     gboolean onBusMessage(GstMessage*);
 
-    static void postEos(
-        GstElement* rtcbin,
-        gboolean error);
     static void postTeePadRemoved(
         GstElement* tee);
 

@@ -86,24 +86,6 @@ void GstStreamingSource::onEos(bool error)
     }
 }
 
-// will be called from streaming thread
-void GstStreamingSource::postEos(
-    GstElement* rtcbin,
-    gboolean error)
-{
-    GstStructure* structure =
-        gst_structure_new(
-            "eos",
-            "error", G_TYPE_BOOLEAN, error,
-            nullptr);
-
-    GstMessage* message =
-        gst_message_new_application(GST_OBJECT(rtcbin), structure);
-
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
-    gst_bus_post(busPtr.get(), message);
-}
-
 void GstStreamingSource::setPipeline(GstElementPtr&& pipelinePtr) noexcept
 {
     assert(pipelinePtr);
