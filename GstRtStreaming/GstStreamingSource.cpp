@@ -126,15 +126,17 @@ void GstStreamingSource::onTeePadRemoved()
 // will be called from streaming thread
 void GstStreamingSource::postTeePadRemoved(GstElement* tee)
 {
+    GstBusPtr busPtr(gst_element_get_bus(tee));
+    if(!busPtr)
+        return;
+
     GstStructure* structure =
         gst_structure_new_empty("tee-pad-removed");
 
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(tee), structure);
 
-    GstBusPtr busPtr(gst_element_get_bus(tee));
-    if(busPtr)
-        gst_bus_post(busPtr.get(), message);
+    gst_bus_post(busPtr.get(), message);
 }
 
 void GstStreamingSource::setTee(GstElementPtr&& teePtr) noexcept
