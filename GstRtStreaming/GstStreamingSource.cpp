@@ -23,10 +23,7 @@ GstStreamingSource::~GstStreamingSource()
 {
     assert(_peers.empty());
 
-    if(GstElement* pipeline = _pipelinePtr.get()) {
-        GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
-        gst_bus_remove_watch(busPtr.get());
-    }
+    cleanup();
 }
 
 gboolean GstStreamingSource::onBusMessage(GstMessage* message)
@@ -188,6 +185,12 @@ void GstStreamingSource::cleanup() noexcept
 {
     _teePtr.reset();
     _fakeSinkPtr.reset();
+
+    if(GstElement* pipeline = _pipelinePtr.get()) {
+        GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
+        gst_bus_remove_watch(busPtr.get());
+    }
+
     _pipelinePtr.reset();
 }
 
