@@ -114,10 +114,8 @@ void GstStreamingSource::onTeePadRemoved()
     gint teeSrcPadsCount = 0;
     g_object_get(G_OBJECT(tee()), "num-src-pads", &teeSrcPadsCount, nullptr);
 
-    if(teeSrcPadsCount == 1) { // only fakesink is linked
-        gst_element_set_state(pipeline(), GST_STATE_NULL);
+    if(teeSrcPadsCount == 1) // only fakesink is linked
         cleanup();
-    }
 }
 
 // will be called from streaming thread
@@ -183,6 +181,8 @@ GstElement* GstStreamingSource::tee() const noexcept
 
 void GstStreamingSource::cleanup() noexcept
 {
+    gst_element_set_state(pipeline(), GST_STATE_NULL);
+
     _teePtr.reset();
     _fakeSinkPtr.reset();
 
