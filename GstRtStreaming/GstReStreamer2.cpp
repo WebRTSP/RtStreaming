@@ -62,20 +62,18 @@ void GstReStreamer2::prepare() noexcept
 
     auto srcPadAddedCallback =
         (void (*)(GstElement*, GstPad*, gpointer))
-         [] (GstElement* decodebin, GstPad* pad, gpointer userData)
-    {
-        GstReStreamer2* self = static_cast<GstReStreamer2*>(userData);
-        self->srcPadAdded(decodebin, pad);
-    };
+        [] (GstElement* decodebin, GstPad* pad, gpointer userData) {
+            GstReStreamer2* self = static_cast<GstReStreamer2*>(userData);
+            self->srcPadAdded(decodebin, pad);
+        };
     g_signal_connect(decodebin, "pad-added", G_CALLBACK(srcPadAddedCallback), this);
 
     auto noMorePadsCallback =
         (void (*)(GstElement*,  gpointer))
-         [] (GstElement* decodebin, gpointer userData)
-    {
-        GstReStreamer2* self = static_cast<GstReStreamer2*>(userData);
-        self->noMorePads(decodebin);
-    };
+        [] (GstElement* decodebin, gpointer userData) {
+            GstReStreamer2* self = static_cast<GstReStreamer2*>(userData);
+            self->noMorePads(decodebin);
+        };
     g_signal_connect(decodebin, "no-more-pads", G_CALLBACK(noMorePadsCallback), this);
 
     g_object_set(decodebin,
