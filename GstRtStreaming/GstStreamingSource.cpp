@@ -181,15 +181,19 @@ GstElement* GstStreamingSource::tee() const noexcept
 
 void GstStreamingSource::cleanup() noexcept
 {
-    gst_element_set_state(pipeline(), GST_STATE_NULL);
+    GstElement* pipeline = _pipelinePtr.get();
+    if(!pipeline) {
+        assert(!_teePtr && !_fakeSinkPtr);
+        return;
+    }
+
+    gst_element_set_state(pipeline, GST_STATE_NULL);
 
     _teePtr.reset();
     _fakeSinkPtr.reset();
 
-    if(GstElement* pipeline = _pipelinePtr.get()) {
-        GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
-        gst_bus_remove_watch(busPtr.get());
-    }
+    GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
+    gst_bus_remove_watch(busPtr.get());
 
     _pipelinePtr.reset();
 }
