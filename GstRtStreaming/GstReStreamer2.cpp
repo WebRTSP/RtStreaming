@@ -17,26 +17,6 @@ GstReStreamer2::GstReStreamer2(const std::string& sourceUrl) :
 {
 }
 
-void GstReStreamer2::setState(GstState state) noexcept
-{
-    if(!pipeline()) {
-        if(state != GST_STATE_NULL)
-            ;
-        return;
-    }
-
-    switch(gst_element_set_state(pipeline(), state)) {
-        case GST_STATE_CHANGE_FAILURE:
-            break;
-        case GST_STATE_CHANGE_SUCCESS:
-            break;
-        case GST_STATE_CHANGE_ASYNC:
-            break;
-        case GST_STATE_CHANGE_NO_PREROLL:
-            break;
-    }
-}
-
 void GstReStreamer2::prepare() noexcept
 {
     assert(!pipeline());
@@ -82,7 +62,7 @@ void GstReStreamer2::prepare() noexcept
 
     gst_bin_add(GST_BIN(pipeline), srcPtr.release());
 
-    setState(GST_STATE_PLAYING);
+    play();
 }
 
 void GstReStreamer2::srcPadAdded(

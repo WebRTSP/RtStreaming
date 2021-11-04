@@ -13,8 +13,6 @@ protected:
     void cleanup() noexcept override;
 
 private:
-    void setState(GstState state) noexcept;
-
     void srcPadAdded(GstElement* decodebin, GstPad*);
     void noMorePads(GstElement* decodebin);
 

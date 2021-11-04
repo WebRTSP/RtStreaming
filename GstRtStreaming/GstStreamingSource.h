@@ -20,6 +20,11 @@ public:
 protected:
     GstStreamingSource();
 
+    void setState(GstState state) noexcept;
+    void pause() noexcept;
+    void play() noexcept;
+    void stop() noexcept;
+
     void setPipeline(GstElementPtr&&) noexcept;
     GstElement* pipeline() const noexcept;
 

@@ -26,6 +26,41 @@ GstStreamingSource::~GstStreamingSource()
     cleanup();
 }
 
+void GstStreamingSource::setState(GstState state) noexcept
+{
+    if(!pipeline()) {
+        if(state != GST_STATE_NULL)
+            ;
+        return;
+    }
+
+    switch(gst_element_set_state(pipeline(), state)) {
+        case GST_STATE_CHANGE_FAILURE:
+            break;
+        case GST_STATE_CHANGE_SUCCESS:
+            break;
+        case GST_STATE_CHANGE_ASYNC:
+            break;
+        case GST_STATE_CHANGE_NO_PREROLL:
+            break;
+    }
+}
+
+void GstStreamingSource::pause() noexcept
+{
+    setState(GST_STATE_PAUSED);
+}
+
+void GstStreamingSource::play() noexcept
+{
+    setState(GST_STATE_PLAYING);
+}
+
+void GstStreamingSource::stop() noexcept
+{
+    setState(GST_STATE_NULL);
+}
+
 gboolean GstStreamingSource::onBusMessage(GstMessage* message)
 {
     switch(GST_MESSAGE_TYPE(message)) {
@@ -187,7 +222,7 @@ void GstStreamingSource::cleanup() noexcept
         return;
     }
 
-    gst_element_set_state(pipeline, GST_STATE_NULL);
+    stop();
 
     _teePtr.reset();
     _fakeSinkPtr.reset();
