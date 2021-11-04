@@ -39,6 +39,7 @@ protected:
 
     unsigned peerCount() const noexcept;
     bool hasPeers() const noexcept;
+    void destroyPeers() noexcept;
 
 private:
     gboolean onBusMessage(GstMessage*);
@@ -52,6 +53,7 @@ private:
     void onTeePadRemoved();
 
     void peerDestroyed(MessageProxy*);
+    void destroyPeer(MessageProxy*);
 
 private:
     GstElementPtr _pipelinePtr;

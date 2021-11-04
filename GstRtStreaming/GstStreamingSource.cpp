@@ -326,3 +326,33 @@ std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
 
     return std::move(peerPtr);
 }
+
+void GstStreamingSource::destroyPeer(MessageProxy* messageProxy)
+{
+    GstBusPtr busPtr(gst_element_get_bus(pipeline()));
+    if(!busPtr)
+        return;
+
+    GstStructure* structure =
+        gst_structure_new(
+            "eos",
+            "error", G_TYPE_BOOLEAN, true,
+            nullptr);
+
+    gst_structure_set(
+        structure,
+        "target", MESSAGE_PROXY_TYPE, messageProxy,
+        NULL);
+
+    GstMessage* message =
+        gst_message_new_application(GST_OBJECT(pipeline()), structure);
+
+    gst_bus_post(busPtr.get(), message);
+}
+
+void GstStreamingSource::destroyPeers() noexcept
+{
+    for(MessageProxy* messageProxy: _peers) {
+        destroyPeer(messageProxy);
+    }
+}
