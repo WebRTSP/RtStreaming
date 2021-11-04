@@ -144,13 +144,46 @@ GstElement* GstStreamingSource::pipeline() const noexcept
     return _pipelinePtr.get();
 }
 
-void GstStreamingSource::onTeePadRemoved()
+unsigned GstStreamingSource::peerCount() const noexcept
 {
     gint teeSrcPadsCount = 0;
     g_object_get(G_OBJECT(tee()), "num-src-pads", &teeSrcPadsCount, nullptr);
 
-    if(teeSrcPadsCount == 1) // only fakesink is linked
-        cleanup();
+    assert(teeSrcPadsCount > 0); // at least fakesink should be attached
+    return teeSrcPadsCount ? teeSrcPadsCount - 1 : 0; // 1 - for linked fakesink
+}
+
+bool GstStreamingSource::hasPeers() const noexcept
+{
+    return peerCount() > 0;
+}
+
+void GstStreamingSource::onTeePadAdded()
+{
+    if(hasPeers())
+        peerAttached();
+}
+
+void GstStreamingSource::onTeePadRemoved()
+{
+    if(!hasPeers()) // only fakesink is linked
+        lastPeerDetached();
+}
+
+// will be called from streaming thread
+void GstStreamingSource::postTeePadAdded(GstElement* tee)
+{
+    GstBusPtr busPtr(gst_element_get_bus(tee));
+    if(!busPtr)
+        return;
+
+    GstStructure* structure =
+        gst_structure_new_empty("tee-pad-added");
+
+    GstMessage* message =
+        gst_message_new_application(GST_OBJECT(tee), structure);
+
+    gst_bus_post(busPtr.get(), message);
 }
 
 // will be called from streaming thread
@@ -180,9 +213,17 @@ void GstStreamingSource::setTee(GstElementPtr&& teePtr) noexcept
     _teePtr = std::move(teePtr);
     GstElement* tee = _teePtr.get();
 
+    auto onPadAddedCallback =
+        (void (*) (GstElement*, GstPad*, gpointer*))
+        [] (GstElement* tee, GstPad* pad, gpointer*) {
+            postTeePadAdded(tee);
+        };
+    g_signal_connect(tee, "pad-added",
+        G_CALLBACK(onPadAddedCallback), pipeline());
+
     auto onPadRemovedCallback =
         (void (*) (GstElement*, GstPad*, gpointer*))
-        [] (GstElement* tee, GstPad* pad, gpointer* userData) {
+        [] (GstElement* tee, GstPad* pad, gpointer*) {
             postTeePadRemoved(tee);
         };
     g_signal_connect(tee, "pad-removed",
@@ -231,6 +272,24 @@ void GstStreamingSource::cleanup() noexcept
     gst_bus_remove_watch(busPtr.get());
 
     _pipelinePtr.reset();
+}
+
+void GstStreamingSource::peerAttached() noexcept
+{
+    GstElement* pipeline = this->pipeline();
+    assert(pipeline);
+    if(!pipeline)
+        return;
+
+    GstState state = GST_STATE_NULL;
+    gst_element_get_state(pipeline, &state, nullptr, 0);
+    if(state != GST_STATE_PLAYING)
+        play();
+}
+
+void GstStreamingSource::lastPeerDetached() noexcept
+{
+    cleanup();
 }
 
 void GstStreamingSource::peerDestroyed(MessageProxy* messageProxy)

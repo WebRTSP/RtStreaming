@@ -32,16 +32,23 @@ protected:
     GstElement* tee() const noexcept;
 
     virtual void prepare() noexcept = 0;
-
     virtual void cleanup() noexcept;
+
+    virtual void peerAttached() noexcept;
+    virtual void lastPeerDetached() noexcept;
+
+    unsigned peerCount() const noexcept;
+    bool hasPeers() const noexcept;
 
 private:
     gboolean onBusMessage(GstMessage*);
 
-    static void postTeePadRemoved(
-        GstElement* tee);
+    static void postTeePadAdded(GstElement* tee);
+    static void postTeePadRemoved(GstElement* tee);
 
     void onEos(bool error);
+
+    void onTeePadAdded();
     void onTeePadRemoved();
 
     void peerDestroyed(MessageProxy*);

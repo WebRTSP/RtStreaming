@@ -676,12 +676,6 @@ void GstWebRTCPeer2::internalPrepare() noexcept
         g_assert(false);
     }
 
-    gint teeSrcPadsCount = 0;
-    g_object_get(G_OBJECT(tee), "num-src-pads", &teeSrcPadsCount, nullptr);
-    if(teeSrcPadsCount == 2) {
-        setState(GST_STATE_PLAYING);
-    }
-
     if(!webRtcBin())
         onEos(true);
 }
@@ -709,31 +703,4 @@ void GstWebRTCPeer2::prepare(
     }
 
     internalPrepare();
-}
-
-void GstWebRTCPeer2::setState(GstState state) noexcept
-{
-    if(!pipeline())
-        return;
-
-    GstElement* pipeline = this->pipeline();
-
-    switch(gst_element_set_state(pipeline, state)) {
-        case GST_STATE_CHANGE_FAILURE:
-            break;
-        case GST_STATE_CHANGE_SUCCESS:
-            break;
-        case GST_STATE_CHANGE_ASYNC:
-            break;
-        case GST_STATE_CHANGE_NO_PREROLL:
-            break;
-    }
-}
-
-void GstWebRTCPeer2::play() noexcept
-{
-}
-
-void GstWebRTCPeer2::stop() noexcept
-{
 }
