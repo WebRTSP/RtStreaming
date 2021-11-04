@@ -675,9 +675,6 @@ void GstWebRTCPeer2::internalPrepare() noexcept
     if(!gst_element_sync_state_with_parent(rtcbin)) {
         g_assert(false);
     }
-
-    if(!webRtcBin())
-        onEos(true);
 }
 
 void GstWebRTCPeer2::prepare(
