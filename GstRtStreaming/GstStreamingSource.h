@@ -16,6 +16,7 @@ public:
     virtual ~GstStreamingSource();
 
     std::unique_ptr<WebRTCPeer> createPeer() noexcept;
+    virtual std::unique_ptr<WebRTCPeer> createRecordPeer() noexcept { return nullptr; }
 
 protected:
     GstStreamingSource();

@@ -8,7 +8,7 @@ class GstRecordStreamer : public GstStreamingSource
 public:
     GstRecordStreamer();
 
-    std::unique_ptr<WebRTCPeer> createRecordPeer() noexcept;
+    std::unique_ptr<WebRTCPeer> createRecordPeer() noexcept override;
 
 protected:
     void prepare() noexcept override;
