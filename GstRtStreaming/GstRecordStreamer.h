@@ -12,6 +12,7 @@ public:
 
 protected:
     void prepare() noexcept override;
+    void recordPrepare() noexcept;
     void cleanup() noexcept override;
 
     void lastPeerDetached() noexcept override;

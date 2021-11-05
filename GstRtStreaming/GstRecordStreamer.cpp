@@ -25,6 +25,11 @@ GstElement* GstRecordStreamer::webRtcBin() const noexcept
 
 void GstRecordStreamer::prepare() noexcept
 {
+    // only record peer can prepare
+}
+
+void GstRecordStreamer::recordPrepare() noexcept
+{
     assert(!pipeline());
     if(pipeline())
         return;
@@ -130,7 +135,7 @@ void GstRecordStreamer::recordPeerDestroyed(MessageProxy* messageProxy)
 std::unique_ptr<WebRTCPeer> GstRecordStreamer::createRecordPeer() noexcept
 {
     if(!pipeline())
-        prepare();
+        recordPrepare();
 
     if(!pipeline())
         return nullptr;
