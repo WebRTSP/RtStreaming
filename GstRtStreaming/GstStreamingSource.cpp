@@ -148,8 +148,12 @@ GstElement* GstStreamingSource::pipeline() const noexcept
 
 unsigned GstStreamingSource::peerCount() const noexcept
 {
+    GstElement* tee = this->tee();
+    if(!tee)
+        return 0;
+
     gint teeSrcPadsCount = 0;
-    g_object_get(G_OBJECT(tee()), "num-src-pads", &teeSrcPadsCount, nullptr);
+    g_object_get(G_OBJECT(tee), "num-src-pads", &teeSrcPadsCount, nullptr);
 
     assert(teeSrcPadsCount > 0); // at least fakesink should be attached
     return teeSrcPadsCount ? teeSrcPadsCount - 1 : 0; // 1 - for linked fakesink
