@@ -94,9 +94,11 @@ gboolean GstStreamingSource::onBusMessage(GstMessage* message)
                 break;
             }
 
-            if(gst_message_has_name(message, "tee-pad-removed")) {
+            if(gst_message_has_name(message, "tee-pad-added"))
+                onTeePadAdded();
+            else if(gst_message_has_name(message, "tee-pad-removed"))
                 onTeePadRemoved();
-            } else if(gst_message_has_name(message, "eos")) {
+            else if(gst_message_has_name(message, "eos")) {
                 gboolean error = FALSE;
                 gst_structure_get_boolean(structure, "error", &error);
                 onEos(error != FALSE);
