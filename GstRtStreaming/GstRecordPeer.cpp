@@ -452,6 +452,8 @@ void GstRecordPeer::internalPrepare() noexcept
     GstElement* rtcbin = this->webRtcBin();
     assert(rtcbin);
 
+    setIceServers();
+
     auto onIceGatheringStateChangedCallback =
         (void (*) (GstElement*, GParamSpec* , MessageProxy*))
         [] (GstElement* rtcbin, GParamSpec*, MessageProxy* messageProxy) {

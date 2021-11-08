@@ -39,8 +39,6 @@ protected:
     void setWebRtcBin(GstElementPtr&&) noexcept;
     GstElement* webRtcBin() const noexcept;
 
-    void setIceServers();
-
     void setState(GstState) noexcept;
     void pause() noexcept;
     void play() noexcept;
@@ -76,6 +74,8 @@ private:
     static void onSetRemoteDescription(
         GstElement* rtcbin,
         GstPromise*);
+
+    void setIceServers();
 
     void onIceCandidate(
         unsigned mlineIndex,

@@ -32,8 +32,6 @@ protected:
     GstElement* queue() const noexcept;
     GstElement* webRtcBin() const noexcept;
 
-    void setIceServers();
-
     void onMessage(GstMessage*);
 
 private:
@@ -73,6 +71,8 @@ private:
         MessageProxy*,
         GstElement* rtcbin,
         GstPromise*);
+
+    void setIceServers();
 
     void internalPrepare() noexcept;
     void prepareWebRtcBin() noexcept;

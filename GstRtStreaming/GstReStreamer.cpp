@@ -115,8 +115,6 @@ void GstReStreamer::srcPadAdded(
         return;
 
     setWebRtcBin(GstElementPtr(gst_bin_get_by_name(GST_BIN(pipeline), "srcrtcbin")));
-
-    setIceServers();
 }
 
 void GstReStreamer::noMorePads(GstElement* /*decodebin*/)

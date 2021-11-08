@@ -342,6 +342,8 @@ void GstWebRTCPeer::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
 
     _rtcbinPtr = std::move(rtcbinPtr);
 
+    setIceServers();
+
     GstElement* rtcbin = webRtcBin();
 
     if(Role::Streamer == _role) {

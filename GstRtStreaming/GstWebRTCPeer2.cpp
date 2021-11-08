@@ -311,6 +311,8 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
     if(!_rtcbinPtr)
         return;
 
+    setIceServers();
+
     GstElement* rtcbin = webRtcBin();
 
     auto onNegotiationNeededCallback =
