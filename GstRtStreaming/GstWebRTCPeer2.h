@@ -6,6 +6,7 @@
 
 #include "../WebRTCPeer.h"
 
+#include "Log.h"
 #include "MessageProxy.h"
 
 
@@ -35,16 +36,26 @@ protected:
     void onMessage(GstMessage*);
 
 private:
+    const std::shared_ptr<spdlog::logger>& log()
+        { return _log; }
+
     void play() noexcept {}
     void stop() noexcept {}
 
     static void onNegotiationNeeded(
         MessageProxy*,
         GstElement* rtcbin);
+    static void onConnectionStateChanged(GstElement* rtcbin);
+    static void onSignalingStateChanged(GstElement* rtcbin);
+    static void onIceConnectionStateChanged(GstElement* rtcbin);
     static void onIceGatheringStateChanged(
         MessageProxy*,
         GstElement* rtcbin);
 
+    static void postLog(
+        GstElement*,
+        spdlog::level::level_enum,
+        const std::string& message);
     static void postIceCandidate(
         MessageProxy*,
         GstElement* rtcbin,
@@ -85,6 +96,8 @@ private:
     void onEos(bool /*error*/);
 
 private:
+    const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
+
     MessageProxy* _messageProxy;
     gulong _teeHandlerId = 0;
     gulong _messageHandlerId = 0;

@@ -112,6 +112,39 @@ void GstRecordPeer::onEos(bool /*error*/)
 }
 
 // will be called from streaming thread
+void GstRecordPeer::postLog(
+    GstElement* element,
+    spdlog::level::level_enum level,
+    const std::string& logMessage)
+{
+    GstBusPtr busPtr(gst_element_get_bus(element));
+    if(!busPtr)
+        return;
+
+    GValue messageValue = G_VALUE_INIT;
+    g_value_init(&messageValue, G_TYPE_STRING);
+    g_value_take_string(&messageValue, g_strdup(logMessage.c_str()));
+
+    GstStructure* structure =
+        gst_structure_new_empty("log");
+
+    gst_structure_set(
+        structure,
+        "level", G_TYPE_INT, level,
+        NULL);
+
+    gst_structure_take_value(
+        structure,
+        "message",
+        &messageValue);
+
+    GstMessage* message =
+        gst_message_new_application(GST_OBJECT(element), structure);
+
+    gst_bus_post(busPtr.get(), message);
+}
+
+// will be called from streaming thread
 void GstRecordPeer::postIceCandidate(
     MessageProxy* messageProxy,
     GstElement* rtcbin,
@@ -308,6 +341,105 @@ void GstRecordPeer::onAnswerCreated(
 }
 
 // will be called from streaming thread
+void GstRecordPeer::onConnectionStateChanged(GstElement* rtcbin)
+{
+    GstWebRTCPeerConnectionState state = GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED;
+    g_object_get(rtcbin, "connection-state", &state, NULL);
+
+    const gchar* stateName = "Unknown";
+    switch(state) {
+    case GST_WEBRTC_PEER_CONNECTION_STATE_NEW:
+        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_NEW";
+        break;
+    case GST_WEBRTC_PEER_CONNECTION_STATE_CONNECTING:
+        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_CONNECTING";
+        break;
+    case GST_WEBRTC_PEER_CONNECTION_STATE_CONNECTED:
+        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_CONNECTED";
+        break;
+    case GST_WEBRTC_PEER_CONNECTION_STATE_DISCONNECTED:
+        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_DISCONNECTED";
+        break;
+    case GST_WEBRTC_PEER_CONNECTION_STATE_FAILED:
+        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_FAILED";
+        break;
+    case GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED:
+        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED";
+        break;
+    }
+
+    if(stateName)
+        postLog(rtcbin, spdlog::level::trace, fmt::format("[GstRecordPeer] Connection State changed: \"{}\"", stateName));
+}
+
+// will be called from streaming thread
+void GstRecordPeer::onSignalingStateChanged(GstElement* rtcbin)
+{
+    GstWebRTCSignalingState state = GST_WEBRTC_SIGNALING_STATE_CLOSED;
+    g_object_get(rtcbin, "signaling-state", &state, NULL);
+
+    const gchar* stateName = "Unknown";
+    switch(state) {
+    case GST_WEBRTC_SIGNALING_STATE_STABLE:
+        stateName = "GST_WEBRTC_SIGNALING_STATE_STABLE";
+        break;
+    case GST_WEBRTC_SIGNALING_STATE_CLOSED:
+        stateName = "GST_WEBRTC_SIGNALING_STATE_CLOSED";
+        break;
+    case GST_WEBRTC_SIGNALING_STATE_HAVE_LOCAL_OFFER:
+        stateName = "GST_WEBRTC_SIGNALING_STATE_HAVE_LOCAL_OFFER";
+        break;
+    case GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_OFFER:
+        stateName = "GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_OFFER";
+        break;
+    case GST_WEBRTC_SIGNALING_STATE_HAVE_LOCAL_PRANSWER:
+        stateName = "GST_WEBRTC_SIGNALING_STATE_HAVE_LOCAL_PRANSWER";
+        break;
+    case GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_PRANSWER:
+        stateName = "GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_PRANSWER";
+        break;
+    }
+
+    if(stateName)
+        postLog(rtcbin, spdlog::level::trace, fmt::format("[GstRecordPeer] Signaling State changed: \"{}\"", stateName));
+}
+
+// will be called from streaming thread
+void GstRecordPeer::onIceConnectionStateChanged(GstElement* rtcbin)
+{
+    GstWebRTCICEConnectionState state = GST_WEBRTC_ICE_CONNECTION_STATE_CLOSED;
+    g_object_get(rtcbin, "ice-connection-state", &state, NULL);
+
+    const gchar* stateName = "Unknown";
+    switch(state) {
+    case GST_WEBRTC_ICE_CONNECTION_STATE_NEW:
+        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_NEW";
+        break;
+    case GST_WEBRTC_ICE_CONNECTION_STATE_CHECKING:
+        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_CHECKING";
+        break;
+    case GST_WEBRTC_ICE_CONNECTION_STATE_CONNECTED:
+        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_CONNECTED";
+        break;
+    case GST_WEBRTC_ICE_CONNECTION_STATE_COMPLETED:
+        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_COMPLETED";
+        break;
+    case GST_WEBRTC_ICE_CONNECTION_STATE_FAILED:
+        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_FAILED";
+        break;
+    case GST_WEBRTC_ICE_CONNECTION_STATE_DISCONNECTED:
+        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_DISCONNECTED";
+        break;
+    case GST_WEBRTC_ICE_CONNECTION_STATE_CLOSED:
+        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_CLOSED";
+        break;
+    }
+
+    if(stateName)
+        postLog(rtcbin, spdlog::level::trace, fmt::format("[GstRecordPeer] Ice Connection State changed: \"{}\"", stateName));
+}
+
+// will be called from streaming thread
 void GstRecordPeer::onIceGatheringStateChanged(
     MessageProxy* messageProxy,
     GstElement* rtcbin)
@@ -453,6 +585,33 @@ void GstRecordPeer::internalPrepare() noexcept
     assert(rtcbin);
 
     setIceServers();
+
+    auto onConnectionStateChangedCallback =
+        (void (*) (GstElement*, GParamSpec* , gpointer))
+        [] (GstElement* rtcbin, GParamSpec*, gpointer) {
+            GstRecordPeer::onConnectionStateChanged(rtcbin);
+        };
+    g_signal_connect(rtcbin,
+        "notify::connection-state",
+        G_CALLBACK(onConnectionStateChangedCallback), nullptr);
+
+    auto onSignalingStateChangedCallback =
+        (void (*) (GstElement*, GParamSpec* , gpointer))
+        [] (GstElement* rtcbin, GParamSpec*, gpointer) {
+            GstRecordPeer::onSignalingStateChanged(rtcbin);
+        };
+    g_signal_connect(rtcbin,
+        "notify::signaling-state",
+        G_CALLBACK(onSignalingStateChangedCallback), nullptr);
+
+    auto onIceConnectionStateChangedCallback =
+        (void (*) (GstElement*, GParamSpec* , gpointer))
+        [] (GstElement* rtcbin, GParamSpec*, gpointer) {
+            GstRecordPeer::onIceConnectionStateChanged(rtcbin);
+        };
+    g_signal_connect(rtcbin,
+        "notify::ice-connection-state",
+        G_CALLBACK(onIceConnectionStateChangedCallback), nullptr);
 
     auto onIceGatheringStateChangedCallback =
         (void (*) (GstElement*, GParamSpec* , MessageProxy*))

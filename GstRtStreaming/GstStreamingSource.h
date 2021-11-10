@@ -7,6 +7,7 @@
 
 #include "../WebRTCPeer.h"
 
+#include "Log.h"
 #include "MessageProxy.h"
 
 
@@ -43,6 +44,9 @@ protected:
     void destroyPeers() noexcept;
 
 private:
+    const std::shared_ptr<spdlog::logger>& log()
+        { return _log; }
+
     gboolean onBusMessage(GstMessage*);
 
     static void postTeePadAdded(GstElement* tee);
@@ -57,6 +61,8 @@ private:
     void destroyPeer(MessageProxy*);
 
 private:
+    const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
+
     GstElementPtr _pipelinePtr;
     GstElementPtr _teePtr;
     GstElementPtr _fakeSinkPtr;
