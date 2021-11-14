@@ -68,6 +68,37 @@ void GstReStreamer2::prepare() noexcept
     play();
 }
 
+static GstPadProbeReturn
+CapsProbe(
+    GstPad* pad,
+    GstPadProbeInfo* info,
+    gpointer userData)
+{
+    GstElement* capsSetter = GST_ELEMENT(userData);
+    if(!capsSetter)
+        return GST_PAD_PROBE_REMOVE;
+
+    GstEvent* event = GST_PAD_PROBE_INFO_EVENT(info);
+    switch(GST_EVENT_TYPE(event)) {
+    case GST_EVENT_CAPS: {
+        GstCaps* caps = nullptr;
+        gst_event_parse_caps(event, &caps);
+        if(gst_caps_get_size(caps) > 0) {
+            GstStructure* capsSctructure = gst_caps_get_structure(caps, 0);
+            const gchar* profileLevelId =
+                gst_structure_get_string(capsSctructure, "profile-level-id");
+
+            if(0 == g_strcmp0(profileLevelId, "42c015")) {
+                g_object_set(G_OBJECT(capsSetter), "caps", nullptr, nullptr);
+            }
+        }
+        return GST_PAD_PROBE_REMOVE;
+    }
+    default:
+        return GST_PAD_PROBE_PASS;
+    }
+}
+
 void GstReStreamer2::srcPadAdded(
     GstElement* /*decodebin*/,
     GstPad* pad)
@@ -102,6 +133,16 @@ void GstReStreamer2::srcPadAdded(
             GstElementPtr capsSetterPtr(gst_bin_get_by_name(GST_BIN(payBin), "capssetter"));
             const std::string caps = "application/x-rtp,profile-level-id=(string)" + _forceH264ProfileLevelId;
             gst_util_set_object_arg(G_OBJECT(capsSetterPtr.get()), "caps", caps.c_str());
+
+            GstPadPtr capsSetterSinkPadPtr(gst_element_get_static_pad(GST_ELEMENT(capsSetterPtr.get()), "sink"));
+            GstPadPtr probePadPtr(gst_pad_get_peer(capsSetterSinkPadPtr.get()));
+
+            gst_pad_add_probe(
+                probePadPtr.get(),
+                static_cast<GstPadProbeType>(GST_PAD_PROBE_TYPE_BLOCK | GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM),
+                CapsProbe,
+                capsSetterPtr.get(),
+                nullptr);
         }
     } else if(gst_caps_is_always_compatible(caps, _vp8CapsPtr.get())) {
         payBin =
