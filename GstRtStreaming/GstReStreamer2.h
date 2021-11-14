@@ -6,7 +6,9 @@
 class GstReStreamer2 : public GstStreamingSource
 {
 public:
-    GstReStreamer2(const std::string& sourceUrl);
+    GstReStreamer2(
+        const std::string& sourceUrl,
+        const std::string& forceH264ProfileLevelId);
 
 protected:
     void prepare() noexcept override;
@@ -18,6 +20,7 @@ private:
 
 private:
     const std::string _sourceUrl;
+    const std::string _forceH264ProfileLevelId;
 
     GstCapsPtr _h264CapsPtr;
     GstCapsPtr _vp8CapsPtr;

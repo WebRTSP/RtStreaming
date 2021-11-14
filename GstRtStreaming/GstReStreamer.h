@@ -6,7 +6,9 @@
 class GstReStreamer : public GstWebRTCPeer
 {
 public:
-    GstReStreamer(const std::string& sourceUrl);
+    GstReStreamer(
+        const std::string& sourceUrl,
+        const std::string& forceH264ProfileLevelId);
     ~GstReStreamer();
 
 protected:
@@ -18,6 +20,7 @@ private:
 
 private:
     const std::string _sourceUrl;
+    const std::string _forceH264ProfileLevelId;
 
     PreparedCallback _preparedCallback;
     IceCandidateCallback _iceCandidateCallback;

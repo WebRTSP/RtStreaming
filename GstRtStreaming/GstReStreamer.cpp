@@ -12,9 +12,12 @@
 #include "Helpers.h"
 
 
-GstReStreamer::GstReStreamer(const std::string& sourceUrl) :
+GstReStreamer::GstReStreamer(
+    const std::string& sourceUrl,
+    const std::string& forceH264ProfileLevelId) :
     GstWebRTCPeer(Role::Streamer),
-    _sourceUrl(sourceUrl)
+    _sourceUrl(sourceUrl),
+    _forceH264ProfileLevelId(forceH264ProfileLevelId)
 {
 }
 
@@ -85,11 +88,16 @@ void GstReStreamer::srcPadAdded(
     GstCaps* caps = capsPtr.get();
 
     if(gst_caps_is_always_compatible(caps, _h264CapsPtr.get())) {
+        const bool forceH264ProfileLevelId = !_forceH264ProfileLevelId.empty();
+
         GstElement* out =
             gst_parse_bin_from_description(
-                "h264parse config-interval=-1 ! rtph264pay pt=96 ! "
-                "capssetter caps=\"application/x-rtp,profile-level-id=(string)42c015\" ! "
-                "webrtcbin name=srcrtcbin",
+                 forceH264ProfileLevelId ?
+                    "h264parse config-interval=-1 ! rtph264pay pt=96 ! "
+                    "capssetter name=capssetter ! "
+                    "webrtcbin name=srcrtcbin" :
+                    "h264parse config-interval=-1 ! rtph264pay pt=96 ! "
+                    "webrtcbin name=srcrtcbin",
                 TRUE, NULL);
         gst_bin_add(GST_BIN(pipeline), out);
         gst_element_sync_state_with_parent(out);
@@ -98,6 +106,12 @@ void GstReStreamer::srcPadAdded(
 
         if(GST_PAD_LINK_OK != gst_pad_link(pad, sink))
             assert(false);
+
+        if(forceH264ProfileLevelId) {
+            GstElementPtr capsSetterPtr(gst_bin_get_by_name(GST_BIN(out), "capssetter"));
+            const std::string caps = "application/x-rtp,profile-level-id=(string)" + _forceH264ProfileLevelId;
+            gst_util_set_object_arg(G_OBJECT(capsSetterPtr.get()), "caps", caps.c_str());
+        }
     } else if(gst_caps_is_always_compatible(caps, _vp8CapsPtr.get())) {
         GstElement* out =
             gst_parse_bin_from_description(
