@@ -89,7 +89,8 @@ void GstRecordStreamer::srcPadAdded(
 
     GstElement* transformBin =
         gst_parse_bin_from_description(
-            "rtph264depay ! h264parse config-interval=-1 ! rtph264pay pt=96",
+            "rtph264depay ! h264parse config-interval=-1 ! rtph264pay pt=96 ! "
+            "capssetter caps=\"application/x-rtp,profile-level-id=(string)42c015\"",
             TRUE, NULL);
     gst_bin_add(GST_BIN(pipeline), transformBin);
     gst_element_sync_state_with_parent(transformBin);
