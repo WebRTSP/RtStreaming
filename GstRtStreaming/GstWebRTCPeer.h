@@ -85,6 +85,11 @@ private:
     void onEos(bool error);
 
 private:
+    static const bool MDNSResolveRequired;
+    static const bool EndOfCandidatesSupported;
+    static const bool AddTurnServerSupported;
+    static const bool IceGatheringStateBroken;
+
     const Role _role;
 
     std::deque<std::string> _iceServers;

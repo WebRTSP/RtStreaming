@@ -38,6 +38,11 @@ protected:
     void onMessage(GstMessage*);
 
 private:
+    static const bool MDNSResolveRequired;
+    static const bool EndOfCandidatesSupported;
+    static const bool AddTurnServerSupported;
+    static const bool IceGatheringStateBroken;
+
     const std::shared_ptr<spdlog::logger>& log()
         { return _log; }
 

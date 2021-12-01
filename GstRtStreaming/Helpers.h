@@ -11,6 +11,15 @@
 namespace GstRtStreaming
 {
 
+bool IsMDNSResolveRequired();
+bool IsEndOfCandidatesSupported();
+bool IsAddTurnServerSupported();
+bool IsIceGatheringStateBroken();
+
 IceServerType ParseIceServerType(const std::string& iceServer);
+
+void TryResolveMDNSIceCandidate(
+    const std::string& candidate,
+    std::string* resolvedCandidate);
 
 }

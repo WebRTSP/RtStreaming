@@ -96,9 +96,12 @@ private:
     void onEos(bool /*error*/);
 
 private:
-    const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
+    static const bool MDNSResolveRequired;
+    static const bool EndOfCandidatesSupported;
+    static const bool AddTurnServerSupported;
+    static const bool IceGatheringStateBroken;
 
-    const bool _mDNSResolveRequired;
+    const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
 
     MessageProxy* _messageProxy;
     gulong _teeHandlerId = 0;

@@ -16,6 +16,11 @@
 #include "Helpers.h"
 
 
+const bool GstRecordPeer::MDNSResolveRequired = GstRtStreaming::IsMDNSResolveRequired();
+const bool GstRecordPeer::EndOfCandidatesSupported = GstRtStreaming::IsEndOfCandidatesSupported();
+const bool GstRecordPeer::AddTurnServerSupported = GstRtStreaming::IsAddTurnServerSupported();
+const bool GstRecordPeer::IceGatheringStateBroken = GstRtStreaming::IsIceGatheringStateBroken();
+
 GstRecordPeer::GstRecordPeer(
     MessageProxy* messageProxy,
     GstElement* pipeline,
@@ -255,12 +260,6 @@ void GstRecordPeer::setIceServers()
 {
     GstElement* rtcbin = webRtcBin();
 
-    guint vMajor = 0, vMinor = 0;
-    gst_plugins_base_version(&vMajor, &vMinor, nullptr, nullptr);
-
-    const bool useAddTurnServer =
-        vMajor > 1 || (vMajor == 1 && vMinor >= 16);
-
     for(const std::string& iceServer: _iceServers) {
         using namespace GstRtStreaming;
         switch(ParseIceServerType(iceServer)) {
@@ -272,7 +271,7 @@ void GstRecordPeer::setIceServers()
                 break;
             case IceServerType::Turn:
             case IceServerType::Turns: {
-                if(useAddTurnServer) {
+                if(AddTurnServerSupported) {
                     gboolean ret;
                     g_signal_emit_by_name(
                         rtcbin,
@@ -447,17 +446,8 @@ void GstRecordPeer::onIceGatheringStateChanged(
     GstWebRTCICEGatheringState state = GST_WEBRTC_ICE_GATHERING_STATE_NEW;
     g_object_get(rtcbin, "ice-gathering-state", &state, NULL);
 
-    if(GST_WEBRTC_ICE_GATHERING_STATE_COMPLETE == state) {
-        // "ice-gathering-state" is broken in GStreamer < 1.17.1
-        guint gstMajor = 0, gstMinor = 0, gstNano = 0;
-        gst_plugins_base_version(&gstMajor, &gstMinor, &gstNano, 0);
-        if((gstMajor == 1 && gstMinor == 17 && gstNano >= 1) ||
-           (gstMajor == 1 && gstMinor > 17) ||
-            gstMajor > 1)
-        {
-            postIceCandidate(messageProxy, rtcbin, 0, nullptr);
-        }
-    }
+    if(GST_WEBRTC_ICE_GATHERING_STATE_COMPLETE == state)
+        postIceCandidate(messageProxy, rtcbin, 0, nullptr);
 }
 
 // will be called from streaming thread
@@ -553,10 +543,7 @@ void GstRecordPeer::addIceCandidate(
     GstElement* rtcbin = webRtcBin();
 
     if(candidate.empty() || candidate == "a=end-of-candidates") {
-        guint gstMajor = 0, gstMinor = 0;
-        gst_plugins_base_version(&gstMajor, &gstMinor, 0, 0);
-        if((gstMajor == 1 && gstMinor > 18) || gstMajor > 1) {
-            //"end-of-candidates" support was added only after GStreamer 1.18
+        if(EndOfCandidatesSupported) {
             g_signal_emit_by_name(
                 rtcbin, "add-ice-candidate",
                 mlineIndex, 0);
@@ -565,15 +552,22 @@ void GstRecordPeer::addIceCandidate(
         return;
     }
 
-    if(!candidate.empty()) {
-        g_signal_emit_by_name(
-            rtcbin, "add-ice-candidate",
-            mlineIndex, candidate.c_str());
-    } else {
-        g_signal_emit_by_name(
-            rtcbin, "add-ice-candidate",
-            mlineIndex, candidate.data());
+    if(MDNSResolveRequired) {
+        std::string resolvedCandidate;
+        if(!candidate.empty())
+            GstRtStreaming::TryResolveMDNSIceCandidate(candidate, &resolvedCandidate);
+
+        if(!resolvedCandidate.empty()) {
+            g_signal_emit_by_name(
+                rtcbin, "add-ice-candidate",
+                mlineIndex, resolvedCandidate.c_str());
+            return;
+        }
     }
+
+    g_signal_emit_by_name(
+        rtcbin, "add-ice-candidate",
+        mlineIndex, candidate.data());
 }
 
 void GstRecordPeer::internalPrepare() noexcept
@@ -613,15 +607,17 @@ void GstRecordPeer::internalPrepare() noexcept
         "notify::ice-connection-state",
         G_CALLBACK(onIceConnectionStateChangedCallback), nullptr);
 
-    auto onIceGatheringStateChangedCallback =
-        (void (*) (GstElement*, GParamSpec* , MessageProxy*))
-        [] (GstElement* rtcbin, GParamSpec*, MessageProxy* messageProxy) {
-            return GstRecordPeer::onIceGatheringStateChanged(messageProxy, rtcbin);
-        };
-    _iceGatheringStateHandlerId =
-        g_signal_connect_object(rtcbin,
-            "notify::ice-gathering-state",
-            G_CALLBACK(onIceGatheringStateChangedCallback), _messageProxy, GConnectFlags());
+    if(!IceGatheringStateBroken) {
+        auto onIceGatheringStateChangedCallback =
+            (void (*) (GstElement*, GParamSpec* , MessageProxy*))
+            [] (GstElement* rtcbin, GParamSpec*, MessageProxy* messageProxy) {
+                return GstRecordPeer::onIceGatheringStateChanged(messageProxy, rtcbin);
+            };
+        _iceGatheringStateHandlerId =
+            g_signal_connect_object(rtcbin,
+                "notify::ice-gathering-state",
+                G_CALLBACK(onIceGatheringStateChangedCallback), _messageProxy, GConnectFlags());
+    }
 
     auto onIceCandidateCallback =
         (void (*) (GstElement*, guint, gchar*, MessageProxy*))

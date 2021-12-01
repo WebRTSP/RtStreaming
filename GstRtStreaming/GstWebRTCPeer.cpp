@@ -15,95 +15,10 @@
 #include "Helpers.h"
 
 
-void GstWebRTCPeer::ResolveIceCandidate(
-    const std::string& candidate,
-    std::string* resolvedCandidate)
-{
-    if(!resolvedCandidate)
-        return;
-
-    resolvedCandidate->clear();
-
-    if(candidate.empty())
-        return;
-
-    enum {
-        ConnectionAddressPos = 4,
-        PortPos = 5,
-    };
-
-    std::string::size_type pos = 0;
-    unsigned token = 0;
-
-    std::string::size_type connectionAddressPos = std::string::npos;
-    std::string::size_type portPos = std::string::npos;
-    while(std::string::npos == portPos &&
-        (pos = candidate.find(' ', pos)) != std::string::npos)
-    {
-        ++pos;
-        ++token;
-
-        switch(token) {
-        case ConnectionAddressPos:
-            connectionAddressPos = pos;
-            break;
-        case PortPos:
-            portPos = pos;
-            break;
-        }
-    }
-
-    if(connectionAddressPos != std::string::npos &&
-        portPos != std::string::npos)
-    {
-        std::string connectionAddress(
-            candidate, connectionAddressPos,
-            portPos - connectionAddressPos - 1);
-
-        const std::string::value_type localSuffix[] = ".local";
-        if(connectionAddress.size() > (sizeof(localSuffix) - 1) &&
-           connectionAddress.compare(
-               connectionAddress.size() - (sizeof(localSuffix) - 1),
-               std::string::npos,
-               localSuffix) == 0)
-        {
-            if(hostent* host = gethostbyname(connectionAddress.c_str())) {
-                int ipLen;
-                switch(host->h_addrtype) {
-                case AF_INET:
-                    ipLen = INET_ADDRSTRLEN;
-                    break;
-                case AF_INET6:
-                    ipLen = INET6_ADDRSTRLEN;
-                    break;
-                default:
-                    return;
-                }
-
-                char ip[ipLen];
-                if(nullptr == inet_ntop(
-                    host->h_addrtype,
-                    host->h_addr_list[0],
-                    ip, ipLen))
-                {
-                   return;
-                }
-
-                if(resolvedCandidate) {
-                    ipLen = strlen(ip);
-
-                    *resolvedCandidate = candidate.substr(0, connectionAddressPos);
-                    resolvedCandidate->append(ip, ipLen);
-                    resolvedCandidate->append(
-                        candidate,
-                        portPos - 1,
-                        std::string::npos);
-                }
-            }
-        }
-    }
-}
-
+const bool GstWebRTCPeer::MDNSResolveRequired = GstRtStreaming::IsMDNSResolveRequired();
+const bool GstWebRTCPeer::EndOfCandidatesSupported = GstRtStreaming::IsEndOfCandidatesSupported();
+const bool GstWebRTCPeer::AddTurnServerSupported = GstRtStreaming::IsAddTurnServerSupported();
+const bool GstWebRTCPeer::IceGatheringStateBroken = GstRtStreaming::IsIceGatheringStateBroken();
 
 GstWebRTCPeer::GstWebRTCPeer(Role role) :
     _role(role)
@@ -359,16 +274,18 @@ void GstWebRTCPeer::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
             G_CALLBACK(onNegotiationNeededCallback), this);
     }
 
-    auto onIceGatheringStateChangedCallback =
-        (void (*) (GstElement*, GParamSpec* , gpointer))
-        [] (GstElement* rtcbin, GParamSpec*, gpointer userData)
-    {
-        return GstWebRTCPeer::onIceGatheringStateChanged(rtcbin);
-    };
-    g_signal_connect(rtcbin,
-        "notify::ice-gathering-state",
-        G_CALLBACK(onIceGatheringStateChangedCallback),
-        nullptr);
+    if(!IceGatheringStateBroken) {
+        auto onIceGatheringStateChangedCallback =
+            (void (*) (GstElement*, GParamSpec* , gpointer))
+            [] (GstElement* rtcbin, GParamSpec*, gpointer userData)
+        {
+            return GstWebRTCPeer::onIceGatheringStateChanged(rtcbin);
+        };
+        g_signal_connect(rtcbin,
+            "notify::ice-gathering-state",
+            G_CALLBACK(onIceGatheringStateChangedCallback),
+            nullptr);
+    }
 
     auto onIceCandidateCallback =
         (void (*) (GstElement*, guint, gchar*, gpointer))
@@ -401,12 +318,6 @@ void GstWebRTCPeer::setIceServers()
 {
     GstElement* rtcbin = webRtcBin();
 
-    guint vMajor = 0, vMinor = 0;
-    gst_plugins_base_version(&vMajor, &vMinor, nullptr, nullptr);
-
-    const bool useAddTurnServer =
-        vMajor > 1 || (vMajor == 1 && vMinor >= 16);
-
     for(const std::string& iceServer: _iceServers) {
         using namespace GstRtStreaming;
         switch(ParseIceServerType(iceServer)) {
@@ -418,7 +329,7 @@ void GstWebRTCPeer::setIceServers()
                 break;
             case IceServerType::Turn:
             case IceServerType::Turns: {
-                if(useAddTurnServer) {
+                if(AddTurnServerSupported) {
                     gboolean ret;
                     g_signal_emit_by_name(
                         rtcbin,
@@ -510,17 +421,8 @@ void GstWebRTCPeer::onIceGatheringStateChanged(GstElement* rtcbin)
     GstWebRTCICEGatheringState state = GST_WEBRTC_ICE_GATHERING_STATE_NEW;
     g_object_get(rtcbin, "ice-gathering-state", &state, NULL);
 
-    if(GST_WEBRTC_ICE_GATHERING_STATE_COMPLETE == state) {
-        // "ice-gathering-state" is broken in GStreamer < 1.17.1
-        guint gstMajor = 0, gstMinor = 0, gstNano = 0;
-        gst_plugins_base_version(&gstMajor, &gstMinor, &gstNano, 0);
-        if((gstMajor == 1 && gstMinor == 17 && gstNano >= 1) ||
-           (gstMajor == 1 && gstMinor > 17) ||
-            gstMajor > 1)
-        {
-            postIceCandidate(rtcbin, 0, nullptr);
-        }
-    }
+    if(GST_WEBRTC_ICE_GATHERING_STATE_COMPLETE == state)
+        postIceCandidate(rtcbin, 0, nullptr);
 }
 
 // will be called from streaming thread
@@ -610,10 +512,7 @@ void GstWebRTCPeer::addIceCandidate(
     GstElement* rtcbin = webRtcBin();
 
     if(candidate.empty() || candidate == "a=end-of-candidates") {
-        guint gstMajor = 0, gstMinor = 0;
-        gst_plugins_base_version(&gstMajor, &gstMinor, 0, 0);
-        if((gstMajor == 1 && gstMinor > 18) || gstMajor > 1) {
-            //"end-of-candidates" support was added only after GStreamer 1.18
+        if(EndOfCandidatesSupported) {
             g_signal_emit_by_name(
                 rtcbin, "add-ice-candidate",
                 mlineIndex, 0);
@@ -622,19 +521,22 @@ void GstWebRTCPeer::addIceCandidate(
         return;
     }
 
-    std::string resolvedCandidate;
-    if(!candidate.empty())
-        ResolveIceCandidate(candidate, &resolvedCandidate);
+    if(MDNSResolveRequired) {
+        std::string resolvedCandidate;
+        if(!candidate.empty())
+            GstRtStreaming::TryResolveMDNSIceCandidate(candidate, &resolvedCandidate);
 
-    if(!resolvedCandidate.empty()) {
-        g_signal_emit_by_name(
-            rtcbin, "add-ice-candidate",
-            mlineIndex, resolvedCandidate.data());
-    } else {
-        g_signal_emit_by_name(
-            rtcbin, "add-ice-candidate",
-            mlineIndex, candidate.data());
+        if(!resolvedCandidate.empty()) {
+            g_signal_emit_by_name(
+                rtcbin, "add-ice-candidate",
+                mlineIndex, resolvedCandidate.c_str());
+            return;
+        }
     }
+
+    g_signal_emit_by_name(
+        rtcbin, "add-ice-candidate",
+        mlineIndex, candidate.data());
 }
 
 void GstWebRTCPeer::prepare(
