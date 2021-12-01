@@ -23,7 +23,7 @@ bool IsMDNSResolveRequired()
     guint vMajor = 0, vMinor = 0;
     gst_plugins_base_version(&vMajor, &vMinor, nullptr, nullptr);
 
-    return vMajor < 2 && vMinor < 18;
+    return vMajor == 1 && vMinor < 18;
 }
 
 void TryResolveMDNSIceCandidate(
