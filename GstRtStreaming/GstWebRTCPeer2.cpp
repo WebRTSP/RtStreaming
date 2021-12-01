@@ -16,47 +16,17 @@
 #include "Helpers.h"
 
 
-GstWebRTCPeer2::GstWebRTCPeer2(
-    MessageProxy* messageProxy,
-    GstElement* pipeline) :
-    _messageProxy(_MESSAGE_PROXY(g_object_ref(messageProxy))),
-    _pipelinePtr(GST_ELEMENT(gst_object_ref(pipeline)))
-{
-    auto onTeeCallback =
-        (void (*) (MessageProxy*, GstElement*, gpointer))
-        [] (MessageProxy*, GstElement* tee, gpointer userData) {
-            GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
-            owner->_teePtr.reset(GST_ELEMENT(g_object_ref(tee))),
-            owner->internalPrepare();
-        };
-    _teeHandlerId =
-        g_signal_connect(_messageProxy, "tee",
-            G_CALLBACK(onTeeCallback), this);
-
-    auto onMessageCallback =
-        (void (*) (MessageProxy*, GstMessage*, gpointer))
-        [] (MessageProxy*, GstMessage* message, gpointer userData) {
-            GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
-            return owner->onMessage(message);
-        };
-    _messageHandlerId =
-        g_signal_connect(_messageProxy, "message",
-            G_CALLBACK(onMessageCallback), this);
-
-    auto onEosCallback =
-        (void (*) (MessageProxy*, gboolean, gpointer))
-        [] (MessageProxy*, gboolean error, gpointer userData) {
-            GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
-            return owner->onEos(error);
-        };
-    _eosHandlerId =
-        g_signal_connect(_messageProxy, "eos",
-            G_CALLBACK(onEosCallback), this);
-}
-
 namespace {
 
-void ResolveIceCandidate(
+bool IsMDNSResolveRequired()
+{
+    guint vMajor = 0, vMinor = 0;
+    gst_plugins_base_version(&vMajor, &vMinor, nullptr, nullptr);
+
+    return vMajor < 2 && vMinor < 18;
+}
+
+void TryResolveMDNSIceCandidate(
     const std::string& candidate,
     std::string* resolvedCandidate)
 {
@@ -144,6 +114,49 @@ void ResolveIceCandidate(
         }
     }
 }
+
+}
+
+GstWebRTCPeer2::GstWebRTCPeer2(
+    MessageProxy* messageProxy,
+    GstElement* pipeline) :
+    _mDNSResolveRequired(IsMDNSResolveRequired()),
+    _messageProxy(_MESSAGE_PROXY(g_object_ref(messageProxy))),
+    _pipelinePtr(GST_ELEMENT(gst_object_ref(pipeline)))
+{
+    auto onTeeCallback =
+        (void (*) (MessageProxy*, GstElement*, gpointer))
+        [] (MessageProxy*, GstElement* tee, gpointer userData) {
+            GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
+            owner->_teePtr.reset(GST_ELEMENT(g_object_ref(tee))),
+            owner->internalPrepare();
+        };
+    _teeHandlerId =
+        g_signal_connect(_messageProxy, "tee",
+            G_CALLBACK(onTeeCallback), this);
+
+    auto onMessageCallback =
+        (void (*) (MessageProxy*, GstMessage*, gpointer))
+        [] (MessageProxy*, GstMessage* message, gpointer userData) {
+            GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
+            return owner->onMessage(message);
+        };
+    _messageHandlerId =
+        g_signal_connect(_messageProxy, "message",
+            G_CALLBACK(onMessageCallback), this);
+
+    auto onEosCallback =
+        (void (*) (MessageProxy*, gboolean, gpointer))
+        [] (MessageProxy*, gboolean error, gpointer userData) {
+            GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
+            return owner->onEos(error);
+        };
+    _eosHandlerId =
+        g_signal_connect(_messageProxy, "eos",
+            G_CALLBACK(onEosCallback), this);
+}
+
+namespace {
 
 struct TeardownData
 {
@@ -861,19 +874,22 @@ void GstWebRTCPeer2::addIceCandidate(
         return;
     }
 
-    std::string resolvedCandidate;
-    if(!candidate.empty())
-        ResolveIceCandidate(candidate, &resolvedCandidate);
+    if(_mDNSResolveRequired) {
+        std::string resolvedCandidate;
+        if(!candidate.empty())
+            TryResolveMDNSIceCandidate(candidate, &resolvedCandidate);
 
-    if(!resolvedCandidate.empty()) {
-        g_signal_emit_by_name(
-            rtcbin, "add-ice-candidate",
-            mlineIndex, resolvedCandidate.c_str());
-    } else {
-        g_signal_emit_by_name(
-            rtcbin, "add-ice-candidate",
-            mlineIndex, candidate.data());
+        if(!resolvedCandidate.empty()) {
+            g_signal_emit_by_name(
+                rtcbin, "add-ice-candidate",
+                mlineIndex, resolvedCandidate.c_str());
+            return;
+        }
     }
+
+    g_signal_emit_by_name(
+        rtcbin, "add-ice-candidate",
+        mlineIndex, candidate.data());
 }
 
 void GstWebRTCPeer2::internalPrepare() noexcept

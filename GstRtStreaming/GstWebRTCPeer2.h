@@ -98,6 +98,8 @@ private:
 private:
     const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
 
+    const bool _mDNSResolveRequired;
+
     MessageProxy* _messageProxy;
     gulong _teeHandlerId = 0;
     gulong _messageHandlerId = 0;
