@@ -1,7 +1,6 @@
 #include "GstWebRTCPeer2.h"
 
 #include <cassert>
-#include <atomic>
 
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
