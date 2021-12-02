@@ -380,7 +380,6 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
         [] (GstElement* rtcbin, GParamSpec*, gpointer) {
             GstWebRTCPeer2::onIceConnectionStateChanged(rtcbin);
         };
-
     g_signal_connect(rtcbin,
         "notify::ice-connection-state",
         G_CALLBACK(onIceConnectionStateChangedCallback), nullptr);
