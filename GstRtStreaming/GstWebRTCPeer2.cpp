@@ -20,9 +20,10 @@ const bool GstWebRTCPeer2::IceGatheringStateBroken = GstRtStreaming::IsIceGather
 GstWebRTCPeer2::GstWebRTCPeer2(
     MessageProxy* messageProxy,
     GstElement* pipeline) :
-    _messageProxy(_MESSAGE_PROXY(g_object_ref(messageProxy))),
-    _pipelinePtr(GST_ELEMENT(gst_object_ref(pipeline)))
+    _messageProxy(_MESSAGE_PROXY(g_object_ref(messageProxy)))
 {
+    setPipeline(pipeline);
+
     auto onTeeCallback =
         (void (*) (MessageProxy*, GstElement*, gpointer))
         [] (MessageProxy*, GstElement* tee, gpointer userData) {
@@ -113,11 +114,11 @@ GstWebRTCPeer2::~GstWebRTCPeer2()
         return; // nothing to teardown
 
     TeardownData* data = new TeardownData {
-        .pipelinePtr = std::move(_pipelinePtr),
+        .pipelinePtr = GstElementPtr(GST_ELEMENT(gst_object_ref(pipeline()))),
         .teePtr = std::move(_teePtr),
         .teeSrcPadPtr = std::move(_teeSrcPadPtr),
         .queuePtr = std::move(_queuePtr),
-        .rtcbinPtr = std::move(_rtcbinPtr),
+        .rtcbinPtr = GstElementPtr(GST_ELEMENT(gst_object_ref(webRtcBin()))),
     };
 
     gst_pad_add_probe(
@@ -151,70 +152,6 @@ void GstWebRTCPeer2::onMessage(GstMessage* message)
         gst_structure_get_boolean(structure, "error", &error);
         onEos(error != FALSE);
     }
-}
-
-void GstWebRTCPeer2::onIceCandidate(
-    unsigned mlineIndex,
-    const gchar* candidate)
-{
-    if(_iceCandidateCallback) {
-        if(!candidate)
-            _iceCandidateCallback(mlineIndex, "a=end-of-candidates");
-        else
-            _iceCandidateCallback(mlineIndex, std::string("a=") + candidate);
-    }
-}
-
-void GstWebRTCPeer2::onSdp(const gchar* sdp)
-{
-    _sdp = sdp;
-
-    onPrepared();
-}
-
-void GstWebRTCPeer2::onPrepared()
-{
-    if(_preparedCallback)
-        _preparedCallback();
-}
-
-void GstWebRTCPeer2::onEos(bool /*error*/)
-{
-    if(_eosCallback)
-        _eosCallback();
-}
-
-// will be called from streaming thread
-void GstWebRTCPeer2::postLog(
-    GstElement* element,
-    spdlog::level::level_enum level,
-    const std::string& logMessage)
-{
-    GstBusPtr busPtr(gst_element_get_bus(element));
-    if(!busPtr)
-        return;
-
-    GValue messageValue = G_VALUE_INIT;
-    g_value_init(&messageValue, G_TYPE_STRING);
-    g_value_take_string(&messageValue, g_strdup(logMessage.c_str()));
-
-    GstStructure* structure =
-        gst_structure_new_empty("log");
-
-    gst_structure_set(
-        structure,
-        "level", G_TYPE_INT, level,
-        NULL);
-
-    gst_structure_take_value(
-        structure,
-        "message",
-        &messageValue);
-
-    GstMessage* message =
-        gst_message_new_application(GST_OBJECT(element), structure);
-
-    gst_bus_post(busPtr.get(), message);
 }
 
 // will be called from streaming thread
@@ -314,11 +251,6 @@ void GstWebRTCPeer2::postEos(
     gst_bus_post(busPtr.get(), message);
 }
 
-GstElement* GstWebRTCPeer2::pipeline() const noexcept
-{
-    return _pipelinePtr.get();
-}
-
 GstElement* GstWebRTCPeer2::tee() const noexcept
 {
     return _teePtr.get();
@@ -334,20 +266,13 @@ GstElement* GstWebRTCPeer2::queue() const noexcept
     return _queuePtr.get();
 }
 
-GstElement* GstWebRTCPeer2::webRtcBin() const noexcept
-{
-    return _rtcbinPtr.get();
-}
-
 void GstWebRTCPeer2::prepareWebRtcBin() noexcept
 {
-    assert(_rtcbinPtr);
-    if(!_rtcbinPtr)
-        return;
-
-    setIceServers();
-
     GstElement* rtcbin = webRtcBin();
+
+    assert(rtcbin);
+    if(!rtcbin)
+        return;
 
     auto onNegotiationNeededCallback =
         (void (*) (GstElement*, MessageProxy*))
@@ -356,33 +281,6 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
         };
     g_signal_connect_object(rtcbin, "on-negotiation-needed",
         G_CALLBACK(onNegotiationNeededCallback), _messageProxy, GConnectFlags());
-
-    auto onConnectionStateChangedCallback =
-        (void (*) (GstElement*, GParamSpec* , gpointer))
-        [] (GstElement* rtcbin, GParamSpec*, gpointer) {
-            GstWebRTCPeer2::onConnectionStateChanged(rtcbin);
-        };
-    g_signal_connect(rtcbin,
-        "notify::connection-state",
-        G_CALLBACK(onConnectionStateChangedCallback), nullptr);
-
-    auto onSignalingStateChangedCallback =
-        (void (*) (GstElement*, GParamSpec* , gpointer))
-        [] (GstElement* rtcbin, GParamSpec*, gpointer) {
-            GstWebRTCPeer2::onSignalingStateChanged(rtcbin);
-        };
-    g_signal_connect(rtcbin,
-        "notify::signaling-state",
-        G_CALLBACK(onSignalingStateChangedCallback), nullptr);
-
-    auto onIceConnectionStateChangedCallback =
-        (void (*) (GstElement*, GParamSpec* , gpointer))
-        [] (GstElement* rtcbin, GParamSpec*, gpointer) {
-            GstWebRTCPeer2::onIceConnectionStateChanged(rtcbin);
-        };
-    g_signal_connect(rtcbin,
-        "notify::ice-connection-state",
-        G_CALLBACK(onIceConnectionStateChangedCallback), nullptr);
 
     if(!IceGatheringStateBroken) {
         auto onIceGatheringStateChangedCallback =
@@ -410,41 +308,6 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
         transceiver->direction = GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
     }
     g_array_unref(transceivers);
-}
-
-void GstWebRTCPeer2::setIceServers()
-{
-    GstElement* rtcbin = webRtcBin();
-
-    for(const std::string& iceServer: _iceServers) {
-        using namespace GstRtStreaming;
-        switch(ParseIceServerType(iceServer)) {
-            case IceServerType::Stun:
-                g_object_set(
-                    rtcbin,
-                    "stun-server", iceServer.c_str(),
-                    nullptr);
-                break;
-            case IceServerType::Turn:
-            case IceServerType::Turns: {
-                if(AddTurnServerSupported) {
-                    gboolean ret;
-                    g_signal_emit_by_name(
-                        rtcbin,
-                        "add-turn-server", iceServer.c_str(),
-                        &ret);
-                } else {
-                    g_object_set(
-                        rtcbin,
-                        "turn-server", iceServer.c_str(),
-                        nullptr);
-                }
-                break;
-            }
-            default:
-                break;
-        }
-    }
 }
 
 // will be called from streaming thread
@@ -540,105 +403,6 @@ void GstWebRTCPeer2::onAnswerCreated(
 }
 
 // will be called from streaming thread
-void GstWebRTCPeer2::onConnectionStateChanged(GstElement* rtcbin)
-{
-    GstWebRTCPeerConnectionState state = GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED;
-    g_object_get(rtcbin, "connection-state", &state, NULL);
-
-    const gchar* stateName = "Unknown";
-    switch(state) {
-    case GST_WEBRTC_PEER_CONNECTION_STATE_NEW:
-        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_NEW";
-        break;
-    case GST_WEBRTC_PEER_CONNECTION_STATE_CONNECTING:
-        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_CONNECTING";
-        break;
-    case GST_WEBRTC_PEER_CONNECTION_STATE_CONNECTED:
-        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_CONNECTED";
-        break;
-    case GST_WEBRTC_PEER_CONNECTION_STATE_DISCONNECTED:
-        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_DISCONNECTED";
-        break;
-    case GST_WEBRTC_PEER_CONNECTION_STATE_FAILED:
-        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_FAILED";
-        break;
-    case GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED:
-        stateName = "GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED";
-        break;
-    }
-
-    if(stateName)
-        postLog(rtcbin, spdlog::level::trace, fmt::format("[GstWebRTCPeer2] Connection State changed: \"{}\"", stateName));
-}
-
-// will be called from streaming thread
-void GstWebRTCPeer2::onSignalingStateChanged(GstElement* rtcbin)
-{
-    GstWebRTCSignalingState state = GST_WEBRTC_SIGNALING_STATE_CLOSED;
-    g_object_get(rtcbin, "signaling-state", &state, NULL);
-
-    const gchar* stateName = "Unknown";
-    switch(state) {
-    case GST_WEBRTC_SIGNALING_STATE_STABLE:
-        stateName = "GST_WEBRTC_SIGNALING_STATE_STABLE";
-        break;
-    case GST_WEBRTC_SIGNALING_STATE_CLOSED:
-        stateName = "GST_WEBRTC_SIGNALING_STATE_CLOSED";
-        break;
-    case GST_WEBRTC_SIGNALING_STATE_HAVE_LOCAL_OFFER:
-        stateName = "GST_WEBRTC_SIGNALING_STATE_HAVE_LOCAL_OFFER";
-        break;
-    case GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_OFFER:
-        stateName = "GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_OFFER";
-        break;
-    case GST_WEBRTC_SIGNALING_STATE_HAVE_LOCAL_PRANSWER:
-        stateName = "GST_WEBRTC_SIGNALING_STATE_HAVE_LOCAL_PRANSWER";
-        break;
-    case GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_PRANSWER:
-        stateName = "GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_PRANSWER";
-        break;
-    }
-
-    if(stateName)
-        postLog(rtcbin, spdlog::level::trace, fmt::format("[GstWebRTCPeer2] Signaling State changed: \"{}\"", stateName));
-}
-
-// will be called from streaming thread
-void GstWebRTCPeer2::onIceConnectionStateChanged(GstElement* rtcbin)
-{
-    GstWebRTCICEConnectionState state = GST_WEBRTC_ICE_CONNECTION_STATE_CLOSED;
-    g_object_get(rtcbin, "ice-connection-state", &state, NULL);
-
-    const gchar* stateName = "Unknown";
-    switch(state) {
-    case GST_WEBRTC_ICE_CONNECTION_STATE_NEW:
-        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_NEW";
-        break;
-    case GST_WEBRTC_ICE_CONNECTION_STATE_CHECKING:
-        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_CHECKING";
-        break;
-    case GST_WEBRTC_ICE_CONNECTION_STATE_CONNECTED:
-        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_CONNECTED";
-        break;
-    case GST_WEBRTC_ICE_CONNECTION_STATE_COMPLETED:
-        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_COMPLETED";
-        break;
-    case GST_WEBRTC_ICE_CONNECTION_STATE_FAILED:
-        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_FAILED";
-        break;
-    case GST_WEBRTC_ICE_CONNECTION_STATE_DISCONNECTED:
-        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_DISCONNECTED";
-        break;
-    case GST_WEBRTC_ICE_CONNECTION_STATE_CLOSED:
-        stateName = "GST_WEBRTC_ICE_CONNECTION_STATE_CLOSED";
-        break;
-    }
-
-    if(stateName)
-        postLog(rtcbin, spdlog::level::trace, fmt::format("[GstWebRTCPeer2] Ice Connection State changed: \"{}\"", stateName));
-}
-
-// will be called from streaming thread
 void GstWebRTCPeer2::onIceGatheringStateChanged(
     MessageProxy* messageProxy,
     GstElement* rtcbin)
@@ -696,7 +460,7 @@ void GstWebRTCPeer2::onSetRemoteDescription(
 
 void GstWebRTCPeer2::setRemoteSdp(const std::string& sdp) noexcept
 {
-    GstElement* rtcbin = _rtcbinPtr.get();
+    GstElement* rtcbin = webRtcBin();
 
     GstSDPMessage* sdpMessage;
     gst_sdp_message_new(&sdpMessage);
@@ -735,48 +499,9 @@ void GstWebRTCPeer2::setRemoteSdp(const std::string& sdp) noexcept
         "set-remote-description", sessionDescription, promise);
 }
 
-const std::string& GstWebRTCPeer2::sdp() noexcept
-{
-    return _sdp;
-}
-
-void GstWebRTCPeer2::addIceCandidate(
-    unsigned mlineIndex,
-    const std::string& candidate) noexcept
-{
-    GstElement* rtcbin = webRtcBin();
-
-    if(candidate.empty() || candidate == "a=end-of-candidates") {
-        if(EndOfCandidatesSupported) {
-            g_signal_emit_by_name(
-                rtcbin, "add-ice-candidate",
-                mlineIndex, 0);
-        }
-
-        return;
-    }
-
-    if(MDNSResolveRequired) {
-        std::string resolvedCandidate;
-        if(!candidate.empty())
-            GstRtStreaming::TryResolveMDNSIceCandidate(candidate, &resolvedCandidate);
-
-        if(!resolvedCandidate.empty()) {
-            g_signal_emit_by_name(
-                rtcbin, "add-ice-candidate",
-                mlineIndex, resolvedCandidate.c_str());
-            return;
-        }
-    }
-
-    g_signal_emit_by_name(
-        rtcbin, "add-ice-candidate",
-        mlineIndex, candidate.data());
-}
-
 void GstWebRTCPeer2::internalPrepare() noexcept
 {
-    if(!_preparedCallback)
+    if(!_prepared)
         return; // prepare didn't called yet
 
     GstElement* pipeline = this->pipeline();
@@ -791,10 +516,10 @@ void GstWebRTCPeer2::internalPrepare() noexcept
     }
 
     _queuePtr.reset(gst_element_factory_make("queue", nullptr));
-    _rtcbinPtr.reset(gst_element_factory_make("webrtcbin", nullptr));
+    setWebRtcBin(GstElementPtr(gst_element_factory_make("webrtcbin", nullptr)));
 
     GstElement* queue = _queuePtr.get();
-    GstElement* rtcbin = _rtcbinPtr.get();
+    GstElement* rtcbin = webRtcBin();
 
     gst_bin_add_many(
         GST_BIN(pipeline),
@@ -836,10 +561,9 @@ void GstWebRTCPeer2::prepare(
     const IceCandidateCallback& iceCandidate,
     const EosCallback& eos) noexcept
 {
-    _iceServers = iceServers;
-    _preparedCallback = prepared;
-    _iceCandidateCallback = iceCandidate;
-    _eosCallback = eos;
+    GstWebRTCPeerBase::prepare(iceServers, prepared, iceCandidate, eos);
+
+    _prepared = true;
 
     assert(pipeline());
     if(!pipeline()) {

@@ -15,11 +15,6 @@
 #include "Helpers.h"
 
 
-const bool GstWebRTCPeer::MDNSResolveRequired = GstRtStreaming::IsMDNSResolveRequired();
-const bool GstWebRTCPeer::EndOfCandidatesSupported = GstRtStreaming::IsEndOfCandidatesSupported();
-const bool GstWebRTCPeer::AddTurnServerSupported = GstRtStreaming::IsAddTurnServerSupported();
-const bool GstWebRTCPeer::IceGatheringStateBroken = GstRtStreaming::IsIceGatheringStateBroken();
-
 GstWebRTCPeer::GstWebRTCPeer(Role role) :
     _role(role)
 {
@@ -29,7 +24,7 @@ GstWebRTCPeer::~GstWebRTCPeer()
 {
     stop();
 
-    if(GstElement* pipeline = _pipelinePtr.get()) {
+    if(GstElement* pipeline = this->pipeline()) {
         GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
         gst_bus_remove_watch(busPtr.get());
     }
@@ -37,13 +32,13 @@ GstWebRTCPeer::~GstWebRTCPeer()
 
 void GstWebRTCPeer::setState(GstState state) noexcept
 {
-    if(!_pipelinePtr) {
+    GstElement* pipeline = this->pipeline();
+
+    if(!pipeline) {
         if(state != GST_STATE_NULL)
             ;
         return;
     }
-
-    GstElement* pipeline = _pipelinePtr.get();
 
     switch(gst_element_set_state(pipeline, state)) {
         case GST_STATE_CHANGE_FAILURE:
@@ -119,38 +114,6 @@ gboolean GstWebRTCPeer::onBusMessage(GstMessage* message)
     return TRUE;
 }
 
-void GstWebRTCPeer::onIceCandidate(
-    unsigned mlineIndex,
-    const gchar* candidate)
-{
-    if(_iceCandidateCallback) {
-        if(!candidate)
-            _iceCandidateCallback(mlineIndex, "a=end-of-candidates");
-        else
-            _iceCandidateCallback(mlineIndex, std::string("a=") + candidate);
-    }
-}
-
-void GstWebRTCPeer::onSdp(const gchar* sdp)
-{
-    _sdp = sdp;
-
-    onPrepared();
-}
-
-void GstWebRTCPeer::onPrepared()
-{
-    if(_preparedCallback)
-        _preparedCallback();
-}
-
-void GstWebRTCPeer::onEos(bool /*error*/)
-{
-    if(_eosCallback)
-        _eosCallback();
-}
-
-
 // will be called from streaming thread
 void GstWebRTCPeer::postIceCandidate(
     GstElement* rtcbin,
@@ -223,13 +186,12 @@ void GstWebRTCPeer::postEos(
 
 void GstWebRTCPeer::setPipeline(GstElementPtr&& pipelinePtr) noexcept
 {
-    assert(pipelinePtr);
-    assert(!_pipelinePtr);
-
-    if(!pipelinePtr || _pipelinePtr)
+    assert(pipelinePtr && !pipeline());
+    if(!pipelinePtr || pipeline())
         return;
 
-    _pipelinePtr = std::move(pipelinePtr);
+    GstWebRTCPeerBase::setPipeline(std::move(pipelinePtr));
+
     GstElement* pipeline = this->pipeline();
 
     auto onBusMessageCallback =
@@ -243,21 +205,13 @@ void GstWebRTCPeer::setPipeline(GstElementPtr&& pipelinePtr) noexcept
     gst_bus_add_watch(busPtr.get(), onBusMessageCallback, this);
 }
 
-GstElement* GstWebRTCPeer::pipeline() const noexcept
-{
-    return _pipelinePtr.get();
-}
-
 void GstWebRTCPeer::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
 {
-    assert(rtcbinPtr && !_rtcbinPtr);
-
-    if(!rtcbinPtr || _rtcbinPtr)
+    assert(rtcbinPtr && !webRtcBin());
+    if(!rtcbinPtr || webRtcBin())
         return;
 
-    _rtcbinPtr = std::move(rtcbinPtr);
-
-    setIceServers();
+   GstWebRTCPeerBase::setWebRtcBin(std::move(rtcbinPtr));
 
     GstElement* rtcbin = webRtcBin();
 
@@ -306,46 +260,6 @@ void GstWebRTCPeer::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
             transceiver->direction = GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
         }
         g_array_unref(transceivers);
-    }
-}
-
-GstElement* GstWebRTCPeer::webRtcBin() const noexcept
-{
-    return _rtcbinPtr.get();
-}
-
-void GstWebRTCPeer::setIceServers()
-{
-    GstElement* rtcbin = webRtcBin();
-
-    for(const std::string& iceServer: _iceServers) {
-        using namespace GstRtStreaming;
-        switch(ParseIceServerType(iceServer)) {
-            case IceServerType::Stun:
-                g_object_set(
-                    rtcbin,
-                    "stun-server", iceServer.c_str(),
-                    nullptr);
-                break;
-            case IceServerType::Turn:
-            case IceServerType::Turns: {
-                if(AddTurnServerSupported) {
-                    gboolean ret;
-                    g_signal_emit_by_name(
-                        rtcbin,
-                        "add-turn-server", iceServer.c_str(),
-                        &ret);
-                } else {
-                    g_object_set(
-                        rtcbin,
-                        "turn-server", iceServer.c_str(),
-                        nullptr);
-                }
-                break;
-            }
-            default:
-                break;
-        }
     }
 }
 
@@ -466,7 +380,7 @@ void GstWebRTCPeer::onSetRemoteDescription(
 
 void GstWebRTCPeer::setRemoteSdp(const std::string& sdp) noexcept
 {
-    GstElement* rtcbin = _rtcbinPtr.get();
+    GstElement* rtcbin = webRtcBin();
 
     GstSDPMessage* sdpMessage;
     gst_sdp_message_new(&sdpMessage);
@@ -500,45 +414,6 @@ void GstWebRTCPeer::setRemoteSdp(const std::string& sdp) noexcept
         "set-remote-description", sessionDescription, promise);
 }
 
-const std::string& GstWebRTCPeer::sdp() noexcept
-{
-    return _sdp;
-}
-
-void GstWebRTCPeer::addIceCandidate(
-    unsigned mlineIndex,
-    const std::string& candidate) noexcept
-{
-    GstElement* rtcbin = webRtcBin();
-
-    if(candidate.empty() || candidate == "a=end-of-candidates") {
-        if(EndOfCandidatesSupported) {
-            g_signal_emit_by_name(
-                rtcbin, "add-ice-candidate",
-                mlineIndex, 0);
-        }
-
-        return;
-    }
-
-    if(MDNSResolveRequired) {
-        std::string resolvedCandidate;
-        if(!candidate.empty())
-            GstRtStreaming::TryResolveMDNSIceCandidate(candidate, &resolvedCandidate);
-
-        if(!resolvedCandidate.empty()) {
-            g_signal_emit_by_name(
-                rtcbin, "add-ice-candidate",
-                mlineIndex, resolvedCandidate.c_str());
-            return;
-        }
-    }
-
-    g_signal_emit_by_name(
-        rtcbin, "add-ice-candidate",
-        mlineIndex, candidate.data());
-}
-
 void GstWebRTCPeer::prepare(
     const IceServers& iceServers,
     const PreparedCallback& prepared,
@@ -549,10 +424,7 @@ void GstWebRTCPeer::prepare(
     if(pipeline())
         return;
 
-    _iceServers = iceServers;
-    _preparedCallback = prepared;
-    _iceCandidateCallback = iceCandidate;
-    _eosCallback = eos;
+    GstWebRTCPeerBase::prepare(iceServers, prepared, iceCandidate, eos);
 
     prepare();
 

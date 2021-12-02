@@ -4,10 +4,10 @@
 
 #include "CxxPtr/GstPtr.h"
 
-#include "../WebRTCPeer.h"
+#include "GstWebRTCPeerBase.h"
 
 
-class GstWebRTCPeer : public WebRTCPeer
+class GstWebRTCPeer : public GstWebRTCPeerBase
 {
 public:
     void prepare(
@@ -17,14 +17,8 @@ public:
         const EosCallback&) noexcept override;
 
     void setRemoteSdp(const std::string& sdp) noexcept override;
-    void addIceCandidate(unsigned mlineIndex, const std::string& candidate) noexcept override;
-    const std::string& sdp() noexcept override;
 
 protected:
-    static void ResolveIceCandidate(
-        const std::string& candidate,
-        std::string* resolvedCandidate);
-
     enum class Role {
         Viewer,
         Streamer
@@ -33,11 +27,8 @@ protected:
     GstWebRTCPeer(Role);
     ~GstWebRTCPeer();
 
-    void setPipeline(GstElementPtr&&) noexcept;
-    GstElement* pipeline() const noexcept;
-
-    void setWebRtcBin(GstElementPtr&&) noexcept;
-    GstElement* webRtcBin() const noexcept;
+    void setPipeline(GstElementPtr&&) noexcept override;
+    void setWebRtcBin(GstElementPtr&&) noexcept override;
 
     void setState(GstState) noexcept;
     void pause() noexcept;
@@ -75,30 +66,6 @@ private:
         GstElement* rtcbin,
         GstPromise*);
 
-    void setIceServers();
-
-    void onIceCandidate(
-        unsigned mlineIndex,
-        const gchar* candidate);
-    void onSdp(const gchar* sdp);
-    void onPrepared();
-    void onEos(bool error);
-
 private:
-    static const bool MDNSResolveRequired;
-    static const bool EndOfCandidatesSupported;
-    static const bool AddTurnServerSupported;
-    static const bool IceGatheringStateBroken;
-
     const Role _role;
-
-    std::deque<std::string> _iceServers;
-    PreparedCallback _preparedCallback;
-    IceCandidateCallback _iceCandidateCallback;
-    EosCallback _eosCallback;
-
-    GstElementPtr _pipelinePtr;
-    GstElementPtr _rtcbinPtr;
-
-    std::string _sdp;
 };
