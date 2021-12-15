@@ -31,9 +31,6 @@ protected:
     void onMessage(GstMessage*);
 
 private:
-    const std::shared_ptr<spdlog::logger>& log()
-        { return _log; }
-
     void play() noexcept {}
     void stop() noexcept {}
 
@@ -75,13 +72,6 @@ private:
     void prepareWebRtcBin() noexcept;
 
 private:
-    static const bool MDNSResolveRequired;
-    static const bool EndOfCandidatesSupported;
-    static const bool AddTurnServerSupported;
-    static const bool IceGatheringStateBroken;
-
-    const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
-
     bool _prepared = false;
 
     MessageProxy* _messageProxy;

@@ -12,11 +12,6 @@
 #include "Helpers.h"
 
 
-const bool GstWebRTCPeer2::MDNSResolveRequired = GstRtStreaming::IsMDNSResolveRequired();
-const bool GstWebRTCPeer2::EndOfCandidatesSupported = GstRtStreaming::IsEndOfCandidatesSupported();
-const bool GstWebRTCPeer2::AddTurnServerSupported = GstRtStreaming::IsAddTurnServerSupported();
-const bool GstWebRTCPeer2::IceGatheringStateBroken = GstRtStreaming::IsIceGatheringStateBroken();
-
 GstWebRTCPeer2::GstWebRTCPeer2(
     MessageProxy* messageProxy,
     GstElement* pipeline) :
