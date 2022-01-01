@@ -517,6 +517,7 @@ void GstWebRTCPeer2::internalPrepare() noexcept
     GstElement* rtcbin = webRtcBin();
 
     g_object_set(queue, "silent", true, nullptr);
+    gst_util_set_object_arg(G_OBJECT(queue), "leaky", "downstream");
 
     gst_bin_add_many(
         GST_BIN(pipeline),
