@@ -5,6 +5,7 @@
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
 #include <gst/webrtc/rtptransceiver.h>
+#include <agent.h>
 
 #include <CxxPtr/GlibPtr.h>
 #include <CxxPtr/GstWebRtcPtr.h>
@@ -54,6 +55,55 @@ void GstWebRTCPeerBase::setWebRtcBin(GstElement* rtcbin) noexcept
     setWebRtcBin(GstElementPtr(GST_ELEMENT(gst_object_ref(rtcbin))));
 }
 
+namespace {
+
+std::string NiceCandidateToString(const NiceCandidate& candidate)
+{
+    std::string out;
+    out.reserve(NICE_ADDRESS_STRING_LEN + 1 + 5 + 1 + 11);
+
+    switch(candidate.type) {
+    case NICE_CANDIDATE_TYPE_HOST:
+        out += "host";
+        break;
+    case NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
+        out += "srflx";
+        break;
+    case NICE_CANDIDATE_TYPE_PEER_REFLEXIVE:
+        out += "prflx";
+        break;
+    case NICE_CANDIDATE_TYPE_RELAYED:
+        out += "relay";
+        break;
+    }
+
+    out += " ";
+
+    gchar adress[NICE_ADDRESS_STRING_LEN];
+    nice_address_to_string(&candidate.addr, adress);
+    out += adress;
+    out += " ";
+
+    switch(candidate.transport) {
+    case NICE_CANDIDATE_TRANSPORT_UDP:
+        out += "UDP";
+        break;
+    case NICE_CANDIDATE_TRANSPORT_TCP_ACTIVE:
+        out += "TCP active";
+        break;
+    case NICE_CANDIDATE_TRANSPORT_TCP_PASSIVE:
+        out += "TCP passive";
+        break;
+    case NICE_CANDIDATE_TRANSPORT_TCP_SO:
+        out += "TCP so";
+        break;
+    }
+
+    return out;
+}
+
+}
+
 void GstWebRTCPeerBase::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
 {
     assert(rtcbinPtr && !_rtcbinPtr);
@@ -93,6 +143,32 @@ void GstWebRTCPeerBase::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
     g_signal_connect(rtcbin,
         "notify::ice-connection-state",
         G_CALLBACK(onIceConnectionStateChangedCallback), nullptr);
+
+    GstObject* iceAgent = nullptr;
+    g_object_get(rtcbin, "ice-agent", &iceAgent, NULL);
+    NiceAgent* niceAgent = nullptr;
+    g_object_get(iceAgent, "agent", &niceAgent, NULL);
+
+    auto onSelectedPairCallback =
+        (void (*)(NiceAgent*, guint, guint, NiceCandidate*, NiceCandidate*, gpointer))
+        [] (NiceAgent* agent,
+            guint streamId, guint componentId,
+            NiceCandidate* localCandidate,
+            NiceCandidate* remoteCandidate,
+            gpointer userData)
+        {
+            GstElement* rtcbin = static_cast<GstElement*>(userData);
+            postLog(
+                rtcbin, spdlog::level::debug,
+                fmt::format(
+                    "[GstWebRTCPeerBase] Selected ICE Pair: Local \"{}\" - Remote \"{}\"",
+                    NiceCandidateToString(*localCandidate),
+                    NiceCandidateToString(*remoteCandidate)));
+        };
+
+    g_signal_connect(niceAgent,
+        "new-selected-pair-full",
+        G_CALLBACK(onSelectedPairCallback), rtcbin);
 }
 
 GstElement* GstWebRTCPeerBase::webRtcBin() const noexcept
