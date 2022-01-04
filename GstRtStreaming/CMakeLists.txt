@@ -30,11 +30,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${NICE_INCLUDE_DIRS})
 target_compile_options(${PROJECT_NAME} PUBLIC ${SPDLOG_CFLAGS})
 target_link_libraries(${PROJECT_NAME}
-    ${GLIB_LIBRARIES}
+    ${GLIB_LDFLAGS}
     ${GSTREAMER_LDFLAGS}
     ${GSTREAMER_SDP_LDFLAGS}
     ${GSTREAMER_WEBRTC_LDFLAGS}
     ${GSTREAMER_PBUTILS_LDFLAGS}
-    ${SPDLOG_LIBRARIES}
+    ${SPDLOG_LDFLAGS}
     ${NICE_LDFLAGS}
     CxxPtr)
