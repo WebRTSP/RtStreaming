@@ -122,6 +122,8 @@ gboolean GstStreamingSource::onBusMessage(GstMessage* message)
 
 void GstStreamingSource::onEos(bool error)
 {
+    _waitingPeers.clear();
+
     for(MessageProxy* target: _peers) {
         g_signal_emit_by_name(target, "eos", error);
     }
@@ -302,12 +304,14 @@ void GstStreamingSource::peerAttached() noexcept
 
 void GstStreamingSource::lastPeerDetached() noexcept
 {
-    cleanup();
 }
 
 void GstStreamingSource::peerDestroyed(MessageProxy* messageProxy)
 {
     _peers.erase(messageProxy);
+
+    if(_peers.empty())
+        cleanup();
 }
 
 std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
