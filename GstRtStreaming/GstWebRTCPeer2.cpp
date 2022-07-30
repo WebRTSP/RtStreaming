@@ -300,7 +300,7 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
     g_signal_emit_by_name(rtcbin, "get-transceivers", &transceivers);
     for(guint i = 0; i < transceivers->len; ++i) {
         GstWebRTCRTPTransceiver* transceiver = g_array_index(transceivers, GstWebRTCRTPTransceiver*, 0);
-        transceiver->direction = GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+        g_object_set(transceiver, "direction", GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY, nullptr);
     }
     g_array_unref(transceivers);
 }
