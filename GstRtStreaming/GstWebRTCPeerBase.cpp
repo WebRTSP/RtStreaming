@@ -145,37 +145,39 @@ void GstWebRTCPeerBase::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
         "notify::ice-connection-state",
         G_CALLBACK(onIceConnectionStateChangedCallback), nullptr);
 
-    GstObject* iceAgent = nullptr;
-    g_object_get(rtcbin, "ice-agent", &iceAgent, NULL);
-    if(iceAgent) {
-        GstObjectPtr iceAgentPtr(iceAgent);
+    if(GstRtStreaming::IsIceAgentAvailable()) {
+        GstObject* iceAgent = nullptr;
+        g_object_get(rtcbin, "ice-agent", &iceAgent, NULL);
+        if(iceAgent) {
+            GstObjectPtr iceAgentPtr(iceAgent);
 
-        NiceAgent* niceAgent = nullptr;
-        g_object_get(iceAgent, "agent", &niceAgent, NULL);
+            NiceAgent* niceAgent = nullptr;
+            g_object_get(iceAgent, "agent", &niceAgent, NULL);
 
-        if(niceAgent) {
-            GObjectPtr niceAgentPtr(G_OBJECT(niceAgent));
+            if(niceAgent) {
+                GObjectPtr niceAgentPtr(G_OBJECT(niceAgent));
 
-            auto onSelectedPairCallback =
-                (void (*)(NiceAgent*, guint, guint, NiceCandidate*, NiceCandidate*, gpointer))
-                [] (NiceAgent* agent,
-                    guint streamId, guint componentId,
-                    NiceCandidate* localCandidate,
-                    NiceCandidate* remoteCandidate,
-                    gpointer userData)
-                {
-                    GstElement* rtcbin = static_cast<GstElement*>(userData);
-                    postLog(
-                        rtcbin, spdlog::level::debug,
-                        fmt::format(
-                            "[GstWebRTCPeerBase] Selected ICE Pair: Local \"{}\" - Remote \"{}\"",
-                            NiceCandidateToString(*localCandidate),
-                            NiceCandidateToString(*remoteCandidate)));
-                };
+                auto onSelectedPairCallback =
+                    (void (*)(NiceAgent*, guint, guint, NiceCandidate*, NiceCandidate*, gpointer))
+                    [] (NiceAgent* agent,
+                        guint streamId, guint componentId,
+                        NiceCandidate* localCandidate,
+                        NiceCandidate* remoteCandidate,
+                        gpointer userData)
+                    {
+                        GstElement* rtcbin = static_cast<GstElement*>(userData);
+                        postLog(
+                            rtcbin, spdlog::level::debug,
+                            fmt::format(
+                                "[GstWebRTCPeerBase] Selected ICE Pair: Local \"{}\" - Remote \"{}\"",
+                                NiceCandidateToString(*localCandidate),
+                                NiceCandidateToString(*remoteCandidate)));
+                    };
 
-            g_signal_connect(niceAgent,
-                "new-selected-pair-full",
-                G_CALLBACK(onSelectedPairCallback), rtcbin);
+                g_signal_connect(niceAgent,
+                    "new-selected-pair-full",
+                    G_CALLBACK(onSelectedPairCallback), rtcbin);
+            }
         }
     }
 }

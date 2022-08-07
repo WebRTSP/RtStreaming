@@ -15,6 +15,7 @@ bool IsMDNSResolveRequired();
 bool IsEndOfCandidatesSupported();
 bool IsAddTurnServerSupported();
 bool IsIceGatheringStateBroken();
+bool IsIceAgentAvailable();
 
 IceServerType ParseIceServerType(const std::string& iceServer);
 

@@ -58,6 +58,17 @@ bool IsIceGatheringStateBroken()
         (gstMajor == 1 && gstMinor == 17 && gstNano == 0);
 }
 
+bool IsIceAgentAvailable()
+{
+    guint gstMajor = 0, gstMinor = 0, gstNano = 0;
+    gst_plugins_base_version(&gstMajor, &gstMinor, &gstNano, 0);
+
+    return
+        gstMajor > 1 ||
+        (gstMajor == 1 && gstMinor > 17) ||
+        (gstMajor == 1 && gstMinor == 17 && gstNano > 0);
+}
+
 void TryResolveMDNSIceCandidate(
     const std::string& candidate,
     std::string* resolvedCandidate)
