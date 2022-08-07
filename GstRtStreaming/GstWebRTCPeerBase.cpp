@@ -8,6 +8,7 @@
 #include <agent.h>
 
 #include <CxxPtr/GlibPtr.h>
+#include <CxxPtr/GstPtr.h>
 #include <CxxPtr/GstWebRtcPtr.h>
 
 #include "Helpers.h"
@@ -147,10 +148,14 @@ void GstWebRTCPeerBase::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
     GstObject* iceAgent = nullptr;
     g_object_get(rtcbin, "ice-agent", &iceAgent, NULL);
     if(iceAgent) {
+        GstObjectPtr iceAgentPtr(iceAgent);
+
         NiceAgent* niceAgent = nullptr;
         g_object_get(iceAgent, "agent", &niceAgent, NULL);
 
         if(niceAgent) {
+            GObjectPtr niceAgentPtr(G_OBJECT(niceAgent));
+
             auto onSelectedPairCallback =
                 (void (*)(NiceAgent*, guint, guint, NiceCandidate*, NiceCandidate*, gpointer))
                 [] (NiceAgent* agent,
