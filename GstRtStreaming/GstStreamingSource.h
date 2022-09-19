@@ -49,11 +49,13 @@ private:
 
     gboolean onBusMessage(GstMessage*);
 
+    static void postTeeAvailable(GstElement* tee);
     static void postTeePadAdded(GstElement* tee);
     static void postTeePadRemoved(GstElement* tee);
 
     void onEos(bool error);
 
+    void onTeeAvailable(GstElement* tee);
     void onTeePadAdded();
     void onTeePadRemoved();
 

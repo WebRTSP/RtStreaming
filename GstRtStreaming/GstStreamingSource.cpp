@@ -94,7 +94,9 @@ gboolean GstStreamingSource::onBusMessage(GstMessage* message)
                 break;
             }
 
-            if(gst_message_has_name(message, "tee-pad-added"))
+            if(gst_message_has_name(message, "tee")) {
+                onTeeAvailable(GST_ELEMENT(GST_MESSAGE_SRC(message)));
+            } else if(gst_message_has_name(message, "tee-pad-added"))
                 onTeePadAdded();
             else if(gst_message_has_name(message, "tee-pad-removed"))
                 onTeePadRemoved();
@@ -173,6 +175,19 @@ bool GstStreamingSource::hasPeers() const noexcept
     return peerCount() > 0;
 }
 
+void GstStreamingSource::onTeeAvailable(GstElement* tee)
+{
+    GstElementPtr teePipelinePtr(GST_ELEMENT(gst_object_get_parent(GST_OBJECT(tee))));
+
+    if(teePipelinePtr == _pipelinePtr) { // однако за время пути, собачка могла подрасти...
+        _teePtr.reset(GST_ELEMENT_CAST(gst_object_ref(tee)));
+        for(MessageProxyPtr& proxyPtr: _waitingPeers) {
+            g_signal_emit_by_name(proxyPtr.get(), "tee", tee);
+        }
+        _waitingPeers.clear();
+    }
+}
+
 void GstStreamingSource::onTeePadAdded()
 {
     if(hasPeers())
@@ -183,6 +198,22 @@ void GstStreamingSource::onTeePadRemoved()
 {
     if(!hasPeers()) // only fakesink is linked
         lastPeerDetached();
+}
+
+// will be called from streaming thread
+void GstStreamingSource::postTeeAvailable(GstElement* tee)
+{
+    GstBusPtr busPtr(gst_element_get_bus(tee));
+    if(!busPtr)
+        return;
+
+    GstStructure* structure =
+        gst_structure_new_empty("tee");
+
+    GstMessage* message =
+        gst_message_new_application(GST_OBJECT(tee), structure);
+
+    gst_bus_post(busPtr.get(), message);
 }
 
 // will be called from streaming thread
@@ -225,8 +256,7 @@ void GstStreamingSource::setTee(GstElementPtr&& teePtr) noexcept
     if(!teePtr || _teePtr)
         return;
 
-    _teePtr = std::move(teePtr);
-    GstElement* tee = _teePtr.get();
+    GstElement* tee = teePtr.get();
 
     auto onPadAddedCallback =
         (void (*) (GstElement*, GstPad*, gpointer*))
@@ -259,10 +289,7 @@ void GstStreamingSource::setTee(GstElementPtr&& teePtr) noexcept
         g_assert(false);
     }
 
-    for(MessageProxyPtr& proxyPtr: _waitingPeers) {
-        g_signal_emit_by_name(proxyPtr.get(), "tee", tee);
-    }
-    _waitingPeers.clear();
+    postTeeAvailable(tee);
 }
 
 GstElement* GstStreamingSource::tee() const noexcept
