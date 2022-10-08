@@ -72,8 +72,6 @@ private:
     void prepareWebRtcBin() noexcept;
 
 private:
-    bool _prepared = false;
-
     MessageProxy* _messageProxy;
     gulong _teeHandlerId = 0;
     gulong _messageHandlerId = 0;

@@ -13,12 +13,6 @@
 class GstWebRTCPeerBase : public WebRTCPeer
 {
 public:
-    void prepare(
-        const IceServers&,
-        const PreparedCallback&,
-        const IceCandidateCallback&,
-        const EosCallback&) noexcept override;
-
     void addIceCandidate(unsigned mlineIndex, const std::string& candidate) noexcept override;
     const std::string& sdp() noexcept override;
 
@@ -30,6 +24,14 @@ protected:
 
     const std::shared_ptr<spdlog::logger>& log()
         { return _log; }
+
+    void attachClient(
+        const PreparedCallback&,
+        const IceCandidateCallback&,
+        const EosCallback&) noexcept;
+    bool clientAttached() const noexcept;
+
+    void setIceServers(const IceServers&) noexcept;
 
     void setPipeline(GstElement*) noexcept;
     virtual void setPipeline(GstElementPtr&&) noexcept;
@@ -61,11 +63,13 @@ private:
 private:
     const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
 
-    std::deque<std::string> _iceServers;
+    bool _clientAttached = false;
+
     PreparedCallback _preparedCallback;
     IceCandidateCallback _iceCandidateCallback;
     EosCallback _eosCallback;
 
+    std::deque<std::string> _iceServers;
     GstElementPtr _pipelinePtr;
     GstElementPtr _rtcbinPtr;
 

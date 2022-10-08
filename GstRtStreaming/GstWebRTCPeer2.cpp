@@ -500,13 +500,16 @@ void GstWebRTCPeer2::setRemoteSdp(const std::string& sdp) noexcept
 
 void GstWebRTCPeer2::internalPrepare() noexcept
 {
-    if(!_prepared)
-        return; // prepare didn't called yet
+    if(!clientAttached()) {
+        return;
+    }
 
     GstElement* pipeline = this->pipeline();
     GstElement* tee = this->tee();
 
-    assert(pipeline && tee);
+    if(!pipeline || !tee) {
+        return;
+    }
 
     assert(!webRtcBin());
     if(webRtcBin()) {
@@ -563,20 +566,8 @@ void GstWebRTCPeer2::prepare(
     const IceCandidateCallback& iceCandidate,
     const EosCallback& eos) noexcept
 {
-    GstWebRTCPeerBase::prepare(iceServers, prepared, iceCandidate, eos);
-
-    _prepared = true;
-
-    assert(pipeline());
-    if(!pipeline()) {
-        onEos(true);
-        return;
-    }
-
-    if(!tee()) {
-        // waiting tee
-        return;
-    }
+    GstWebRTCPeerBase::setIceServers(iceServers);
+    GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos);
 
     internalPrepare();
 }

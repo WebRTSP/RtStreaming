@@ -19,16 +19,31 @@ const bool GstWebRTCPeerBase::EndOfCandidatesSupported = GstRtStreaming::IsEndOf
 const bool GstWebRTCPeerBase::AddTurnServerSupported = GstRtStreaming::IsAddTurnServerSupported();
 const bool GstWebRTCPeerBase::IceGatheringStateBroken = GstRtStreaming::IsIceGatheringStateBroken();
 
-void GstWebRTCPeerBase::prepare(
-    const IceServers& iceServers,
+void GstWebRTCPeerBase::attachClient(
     const PreparedCallback& prepared,
     const IceCandidateCallback& iceCandidate,
     const EosCallback& eos) noexcept
 {
-    _iceServers = iceServers;
+    assert(!_clientAttached);
+    if(_clientAttached) {
+        return;
+    }
+
     _preparedCallback = prepared;
     _iceCandidateCallback = iceCandidate;
     _eosCallback = eos;
+
+    _clientAttached = true;
+}
+
+bool GstWebRTCPeerBase::clientAttached() const noexcept
+{
+    return _clientAttached;
+}
+
+void GstWebRTCPeerBase::setIceServers(const IceServers& iceServers) noexcept
+{
+    _iceServers = iceServers;
 }
 
 void GstWebRTCPeerBase::setPipeline(GstElement* pipeline) noexcept

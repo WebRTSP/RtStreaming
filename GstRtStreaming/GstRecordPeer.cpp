@@ -363,7 +363,8 @@ void GstRecordPeer::prepare(
     const IceCandidateCallback& iceCandidate,
     const EosCallback& eos) noexcept
 {
-    GstWebRTCPeerBase::prepare(iceServers, prepared, iceCandidate, eos);
+    GstWebRTCPeerBase::setIceServers(iceServers);
+    GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos);
 
     assert(pipeline());
     if(!pipeline()) {
