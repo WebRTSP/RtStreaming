@@ -11,7 +11,7 @@ public:
     std::unique_ptr<WebRTCPeer> createRecordPeer() noexcept override;
 
 protected:
-    void prepare() noexcept override;
+    bool prepare() noexcept override;
     void recordPrepare() noexcept;
     void cleanup() noexcept override;
 

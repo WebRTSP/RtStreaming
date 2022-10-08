@@ -20,7 +20,7 @@ GstTestStreamer2::GstTestStreamer2(
 {
 }
 
-void GstTestStreamer2::prepare() noexcept
+bool GstTestStreamer2::prepare() noexcept
 {
     std::string usePattern = "smpte";
     if(_pattern == "bars")
@@ -51,7 +51,7 @@ void GstTestStreamer2::prepare() noexcept
     GstElementPtr pipelinePtr(gst_parse_launch(pipelineDesc, &parseError));
     GErrorPtr parseErrorPtr(parseError);
     if(parseError)
-        return;
+        return false;
 
     GstElement* pipeline = pipelinePtr.get();
 
@@ -65,4 +65,6 @@ void GstTestStreamer2::prepare() noexcept
 
     setPipeline(std::move(pipelinePtr));
     setTee(std::move(teePtr));
+
+    return true;
 }

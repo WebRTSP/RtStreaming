@@ -343,10 +343,7 @@ void GstStreamingSource::peerDestroyed(MessageProxy* messageProxy)
 
 std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
 {
-    if(!pipeline())
-        prepare();
-
-    if(!pipeline())
+    if(!prepare())
         return nullptr;
 
     MessageProxyPtr messageProxyPtr(message_proxy_new());
@@ -361,7 +358,7 @@ std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
     _peers.insert(messageProxy);
 
     std::unique_ptr<GstWebRTCPeer2> peerPtr =
-        std::make_unique<GstWebRTCPeer2>(messageProxy, pipeline());
+        std::make_unique<GstWebRTCPeer2>(messageProxy);
     if(tee()) {
         g_signal_emit_by_name(messageProxy, "tee", tee());
     } else {

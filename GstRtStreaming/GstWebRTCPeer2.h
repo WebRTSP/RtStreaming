@@ -12,7 +12,7 @@
 class GstWebRTCPeer2 : public GstWebRTCPeerBase
 {
 public:
-    GstWebRTCPeer2(MessageProxy*, GstElement* pipeline);
+    GstWebRTCPeer2(MessageProxy*);
     ~GstWebRTCPeer2();
 
     void prepare(

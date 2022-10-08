@@ -9,7 +9,7 @@ public:
     GstPipelineStreamer2(const std::string& sourcePipelineDesc);
 
 protected:
-    void prepare() noexcept override;
+    bool prepare() noexcept override;
 
 private:
     const std::string _sourcePipelineDesc;

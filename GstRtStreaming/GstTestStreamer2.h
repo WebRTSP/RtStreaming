@@ -12,7 +12,7 @@ public:
         GstRtStreaming::Videocodec videocodec = GstRtStreaming::Videocodec::h264);
 
 protected:
-    void prepare() noexcept override;
+    bool prepare() noexcept override;
 
 private:
     const std::string _pattern;

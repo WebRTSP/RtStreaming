@@ -19,7 +19,7 @@ GstPipelineStreamer2::GstPipelineStreamer2(const std::string& sourcePipelineDesc
 {
 }
 
-void GstPipelineStreamer2::prepare() noexcept
+bool GstPipelineStreamer2::prepare() noexcept
 {
     GstElementPtr pipelinePtr(gst_pipeline_new(nullptr));
     GstElement* pipeline = pipelinePtr.get();
@@ -30,7 +30,7 @@ void GstPipelineStreamer2::prepare() noexcept
             _sourcePipelineDesc.c_str(),
             TRUE, &parseError);
     if(parseError)
-        return;
+        return false;
 
     gst_bin_add(GST_BIN(pipeline), sourceBin);
     gst_element_sync_state_with_parent(sourceBin);
@@ -38,13 +38,15 @@ void GstPipelineStreamer2::prepare() noexcept
     GstElementPtr teePtr(gst_element_factory_make("tee", nullptr));
     GstElement* tee = teePtr.get();
     if(!tee)
-        return;
+        return false;
 
     gst_bin_add(GST_BIN(pipeline), GST_ELEMENT(gst_object_ref(tee)));
     gst_element_sync_state_with_parent(tee);
     if(!gst_element_link(sourceBin, tee))
-        return;
+        return false;
 
     setPipeline(std::move(pipelinePtr));
     setTee(std::move(teePtr));
+
+    return true;
 }

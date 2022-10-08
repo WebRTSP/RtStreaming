@@ -12,17 +12,15 @@
 #include "Helpers.h"
 
 
-GstWebRTCPeer2::GstWebRTCPeer2(
-    MessageProxy* messageProxy,
-    GstElement* pipeline) :
+GstWebRTCPeer2::GstWebRTCPeer2(MessageProxy* messageProxy) :
     _messageProxy(_MESSAGE_PROXY(g_object_ref(messageProxy)))
 {
-    setPipeline(pipeline);
-
     auto onTeeCallback =
         (void (*) (MessageProxy*, GstElement*, gpointer))
         [] (MessageProxy*, GstElement* tee, gpointer userData) {
             GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
+            assert(!owner->pipeline() && !owner->_teePtr);
+            owner->setPipeline(GstElementPtr(GST_ELEMENT(gst_object_get_parent(GST_OBJECT(tee)))));
             owner->_teePtr.reset(GST_ELEMENT(g_object_ref(tee))),
             owner->internalPrepare();
         };

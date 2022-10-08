@@ -20,11 +20,11 @@ GstReStreamer2::GstReStreamer2(
 {
 }
 
-void GstReStreamer2::prepare() noexcept
+bool GstReStreamer2::prepare() noexcept
 {
     assert(!pipeline());
     if(pipeline())
-        return;
+        return true;
 
     _h264CapsPtr.reset(gst_caps_from_string("video/x-h264"));
     _vp8CapsPtr.reset(gst_caps_from_string("video/x-vp8"));
@@ -39,7 +39,7 @@ void GstReStreamer2::prepare() noexcept
     GstElementPtr srcPtr(gst_element_factory_make("uridecodebin", nullptr));
     GstElement* decodebin = srcPtr.get();
     if(!decodebin)
-        return;
+        return false;
 
     g_object_set(decodebin, "caps", supportedCaps, nullptr);
 
@@ -66,6 +66,8 @@ void GstReStreamer2::prepare() noexcept
     gst_bin_add(GST_BIN(pipeline), srcPtr.release());
 
     play();
+
+    return true;
 }
 
 void GstReStreamer2::srcPadAdded(

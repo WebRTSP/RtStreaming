@@ -33,7 +33,7 @@ protected:
     void setTee(GstElementPtr&&) noexcept;
     GstElement* tee() const noexcept;
 
-    virtual void prepare() noexcept = 0;
+    virtual bool prepare() noexcept = 0;
     virtual void cleanup() noexcept;
 
     virtual void peerAttached() noexcept;

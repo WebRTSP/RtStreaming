@@ -11,7 +11,7 @@ public:
         const std::string& forceH264ProfileLevelId);
 
 protected:
-    void prepare() noexcept override;
+    bool prepare() noexcept override;
     void cleanup() noexcept override;
 
 private:

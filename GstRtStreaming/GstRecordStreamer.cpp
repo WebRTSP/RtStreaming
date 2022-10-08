@@ -23,9 +23,10 @@ GstElement* GstRecordStreamer::webRtcBin() const noexcept
     return _rtcbinPtr.get();
 }
 
-void GstRecordStreamer::prepare() noexcept
+bool GstRecordStreamer::prepare() noexcept
 {
     // only record peer can prepare
+    return true;
 }
 
 void GstRecordStreamer::recordPrepare() noexcept
