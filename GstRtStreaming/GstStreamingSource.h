@@ -22,6 +22,8 @@ public:
 protected:
     GstStreamingSource();
 
+    void onEos(bool error);
+
     void setState(GstState state) noexcept;
     void pause() noexcept;
     void play() noexcept;
@@ -52,8 +54,6 @@ private:
     static void postTeeAvailable(GstElement* tee);
     static void postTeePadAdded(GstElement* tee);
     static void postTeePadRemoved(GstElement* tee);
-
-    void onEos(bool error);
 
     void onTeeAvailable(GstElement* tee);
     void onTeePadAdded();

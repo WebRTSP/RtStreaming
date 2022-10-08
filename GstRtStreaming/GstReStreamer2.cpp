@@ -13,11 +13,22 @@
 
 
 GstReStreamer2::GstReStreamer2(
+    const std::string& forceH264ProfileLevelId) :
+    _forceH264ProfileLevelId(forceH264ProfileLevelId)
+{
+}
+
+GstReStreamer2::GstReStreamer2(
     const std::string& sourceUrl,
     const std::string& forceH264ProfileLevelId) :
     _sourceUrl(sourceUrl),
     _forceH264ProfileLevelId(forceH264ProfileLevelId)
 {
+}
+
+void GstReStreamer2::setSourceUrl(const std::string& sourceUrl)
+{
+    _sourceUrl = sourceUrl;
 }
 
 bool GstReStreamer2::prepare() noexcept

@@ -37,4 +37,5 @@ target_link_libraries(${PROJECT_NAME}
     ${GSTREAMER_PBUTILS_LDFLAGS}
     ${SPDLOG_LDFLAGS}
     ${NICE_LDFLAGS}
-    CxxPtr)
+    CxxPtr
+    ONVIF)

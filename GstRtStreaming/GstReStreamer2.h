@@ -11,6 +11,9 @@ public:
         const std::string& forceH264ProfileLevelId);
 
 protected:
+    GstReStreamer2(const std::string& forceH264ProfileLevelId);
+
+    void setSourceUrl(const std::string&);
     bool prepare() noexcept override;
     void cleanup() noexcept override;
 
@@ -19,7 +22,7 @@ private:
     void noMorePads(GstElement* decodebin);
 
 private:
-    const std::string _sourceUrl;
+    std::string _sourceUrl;
     const std::string _forceH264ProfileLevelId;
 
     GstCapsPtr _h264CapsPtr;

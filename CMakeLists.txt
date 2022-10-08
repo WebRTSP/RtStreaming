@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.0)
 project(RtStreaming)
 
 add_subdirectory(deps/CxxPtr)
+add_subdirectory(deps/ONVIF)
 add_subdirectory(GstRtStreaming)
 
 file(GLOB SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
