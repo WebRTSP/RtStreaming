@@ -3,4 +3,4 @@
 	url = https://github.com/RSATom/CxxPtr.git
 [submodule "deps/ONVIF"]
 	path = deps/ONVIF
-	url = git@github.com:WebRTSP/ONVIF.git
+	url = https://github.com/WebRTSP/ONVIF.git
