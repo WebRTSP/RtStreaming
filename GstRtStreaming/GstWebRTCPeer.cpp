@@ -104,6 +104,13 @@ gboolean GstWebRTCPeer::onBusMessage(GstMessage* message)
                 gboolean error = FALSE;
                 gst_structure_get_boolean(structure, "error", &error);
                 onEos(error != FALSE);
+            } else if(gst_message_has_name(message, "log")) {
+                gint level = spdlog::level::trace;
+                gst_structure_get_int(structure, "level", &level);
+
+                const gchar* message = gst_structure_get_string(structure, "message");
+                if(message)
+                    log()->log(static_cast<spdlog::level::level_enum>(level), message);
             }
             break;
         }
@@ -428,7 +435,8 @@ void GstWebRTCPeer::prepare(
     if(pipeline())
         return;
 
-    GstWebRTCPeerBase::prepare(iceServers, prepared, iceCandidate, eos);
+    GstWebRTCPeerBase::setIceServers(iceServers);
+    GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos);
 
     prepare();
 
