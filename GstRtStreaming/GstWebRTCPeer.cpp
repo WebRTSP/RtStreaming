@@ -237,7 +237,7 @@ void GstWebRTCPeer::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
 
     if(!IceGatheringStateBroken) {
         auto onIceGatheringStateChangedCallback =
-            (void (*) (GstElement*, GParamSpec* , gpointer))
+            (void (*) (GstElement*, GParamSpec*, gpointer))
             [] (GstElement* rtcbin, GParamSpec*, gpointer userData)
         {
             return GstWebRTCPeer::onIceGatheringStateChanged(rtcbin);
