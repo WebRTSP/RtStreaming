@@ -42,7 +42,7 @@ void GstRecordStreamer::recordPrepare() noexcept
     GstElementPtr pipelinePtr(gst_pipeline_new(nullptr));
     GstElement* pipeline = pipelinePtr.get();
 
-    GstElementPtr rtcbinPtr(gst_element_factory_make("webrtcbin", nullptr));
+    GstElementPtr rtcbinPtr(gst_element_factory_make("webrtcbin", "record rtcbin"));
     GstElement* rtcbin = rtcbinPtr.get();
 
     gst_bin_add(GST_BIN(pipeline), GST_ELEMENT(gst_object_ref(rtcbin)));
