@@ -332,6 +332,7 @@ void GstStreamingSource::peerAttached() noexcept
 
 void GstStreamingSource::lastPeerDetached() noexcept
 {
+    cleanup();
 }
 
 void GstStreamingSource::peerDestroyed(MessageProxy* messageProxy)
@@ -340,11 +341,6 @@ void GstStreamingSource::peerDestroyed(MessageProxy* messageProxy)
 
     if(_peers.empty())
         lastPeerDestroyed();
-}
-
-void GstStreamingSource::lastPeerDestroyed() noexcept
-{
-    cleanup();
 }
 
 std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept

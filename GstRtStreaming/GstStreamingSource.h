@@ -40,7 +40,7 @@ protected:
 
     virtual void peerAttached() noexcept;
     virtual void lastPeerDetached() noexcept;
-    virtual void lastPeerDestroyed() noexcept;
+    virtual void lastPeerDestroyed() noexcept {}
 
     unsigned peerCount() const noexcept;
     bool hasPeers() const noexcept;
