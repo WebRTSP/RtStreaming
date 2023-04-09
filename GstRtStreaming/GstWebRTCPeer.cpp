@@ -202,7 +202,6 @@ void GstWebRTCPeer::setPipeline(GstElementPtr&& pipelinePtr) noexcept
     GstElement* pipeline = this->pipeline();
 
     auto onBusMessageCallback =
-        (gboolean (*) (GstBus*, GstMessage*, gpointer))
         [] (GstBus* bus, GstMessage* message, gpointer userData) -> gboolean
         {
             GstWebRTCPeer* self = static_cast<GstWebRTCPeer*>(userData);
