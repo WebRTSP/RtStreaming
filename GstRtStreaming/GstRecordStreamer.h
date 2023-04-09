@@ -15,6 +15,7 @@ protected:
     void recordPrepare() noexcept;
     void cleanup() noexcept override;
 
+    void peerAttached() noexcept override;
     void lastPeerDetached() noexcept override;
 
 private:

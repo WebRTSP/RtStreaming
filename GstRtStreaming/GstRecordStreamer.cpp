@@ -163,6 +163,11 @@ std::unique_ptr<WebRTCPeer> GstRecordStreamer::createRecordPeer() noexcept
     return std::move(recordPeerPtr);
 }
 
+void GstRecordStreamer::peerAttached() noexcept
+{
+    // just to ignore implementation from parent
+}
+
 void GstRecordStreamer::lastPeerDetached() noexcept
 {
     // pipeline should be active while record peer is active
