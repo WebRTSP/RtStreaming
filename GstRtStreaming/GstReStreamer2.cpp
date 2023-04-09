@@ -33,9 +33,8 @@ void GstReStreamer2::setSourceUrl(const std::string& sourceUrl)
 
 bool GstReStreamer2::prepare() noexcept
 {
-    assert(!pipeline());
     if(pipeline())
-        return true;
+        return true; // already prepared
 
     _h264CapsPtr.reset(gst_caps_from_string("video/x-h264"));
     _vp8CapsPtr.reset(gst_caps_from_string("video/x-vp8"));
