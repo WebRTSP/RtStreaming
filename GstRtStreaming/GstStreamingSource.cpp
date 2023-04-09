@@ -249,15 +249,13 @@ void GstStreamingSource::postTeePadRemoved(GstElement* tee)
     gst_bus_post(busPtr.get(), message);
 }
 
-void GstStreamingSource::setTee(GstElementPtr&& teePtr) noexcept
+void GstStreamingSource::setTee(GstElement* tee) noexcept
 {
-    assert(teePtr);
+    assert(tee);
     assert(!_teePtr);
 
-    if(!teePtr || _teePtr)
+    if(!tee || _teePtr)
         return;
-
-    GstElement* tee = teePtr.get();
 
     auto onPadAddedCallback =
         (void (*) (GstElement*, GstPad*, gpointer*))

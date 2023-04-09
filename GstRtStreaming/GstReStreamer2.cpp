@@ -136,7 +136,7 @@ void GstReStreamer2::srcPadAdded(
     gst_element_sync_state_with_parent(tee);
     gst_element_link(payBin, tee);
 
-    setTee(std::move(teePtr));
+    setTee(tee);
 }
 
 void GstReStreamer2::noMorePads(GstElement* /*decodebin*/)

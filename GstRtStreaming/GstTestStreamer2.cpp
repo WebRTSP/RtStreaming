@@ -64,7 +64,7 @@ bool GstTestStreamer2::prepare() noexcept
         gst_bin_get_by_name(GST_BIN(pipeline), "tee"));
 
     setPipeline(std::move(pipelinePtr));
-    setTee(std::move(teePtr));
+    setTee(teePtr.get());
 
     return true;
 }

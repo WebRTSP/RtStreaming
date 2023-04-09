@@ -107,7 +107,7 @@ void GstRecordStreamer::srcPadAdded(
     gst_element_sync_state_with_parent(tee);
     gst_element_link(transformBin, tee);
 
-    setTee(std::move(teePtr));
+    setTee(tee);
 }
 
 void GstRecordStreamer::noMorePads(GstElement* /*decodebin*/)

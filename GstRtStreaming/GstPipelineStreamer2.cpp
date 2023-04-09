@@ -46,7 +46,7 @@ bool GstPipelineStreamer2::prepare() noexcept
         return false;
 
     setPipeline(std::move(pipelinePtr));
-    setTee(std::move(teePtr));
+    setTee(tee);
 
     return true;
 }

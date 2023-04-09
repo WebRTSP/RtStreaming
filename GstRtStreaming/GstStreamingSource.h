@@ -32,7 +32,7 @@ protected:
     void setPipeline(GstElementPtr&&) noexcept;
     GstElement* pipeline() const noexcept;
 
-    void setTee(GstElementPtr&&) noexcept;
+    void setTee(GstElement*) noexcept;
     GstElement* tee() const noexcept;
 
     virtual bool prepare() noexcept = 0;
