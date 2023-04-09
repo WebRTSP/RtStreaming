@@ -38,6 +38,7 @@ protected:
     virtual bool prepare() noexcept = 0;
     virtual void cleanup() noexcept;
 
+    virtual void onPrerolled() noexcept {}
     virtual void peerAttached() noexcept;
     virtual void lastPeerDetached() noexcept;
     virtual void lastPeerDestroyed() noexcept {}
@@ -69,6 +70,8 @@ private:
     GstElementPtr _pipelinePtr;
     GstElementPtr _teePtr;
     GstElementPtr _fakeSinkPtr;
+
+    bool _prerolled = false;
 
     std::deque<MessageProxyPtr> _waitingPeers;
     std::unordered_set<MessageProxy*> _peers;

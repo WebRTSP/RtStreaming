@@ -64,6 +64,12 @@ void GstStreamingSource::stop() noexcept
 gboolean GstStreamingSource::onBusMessage(GstMessage* message)
 {
     switch(GST_MESSAGE_TYPE(message)) {
+        case GST_MESSAGE_ASYNC_DONE:
+            if(pipeline() == GST_ELEMENT(GST_MESSAGE_SRC(message)) && !_prerolled) {
+                _prerolled = true;
+                onPrerolled();
+            }
+            break;
         case GST_MESSAGE_EOS:
             onEos(false);
             break;
