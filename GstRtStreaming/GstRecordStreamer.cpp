@@ -77,6 +77,7 @@ void GstRecordStreamer::recordPrepare() noexcept
     play();
 }
 
+// will be called from streaming thread
 void GstRecordStreamer::srcPadAdded(
     GstElement* /*rtcbin*/,
     GstPad* pad)
