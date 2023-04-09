@@ -249,12 +249,11 @@ void GstStreamingSource::postTeePadRemoved(GstElement* tee)
     gst_bus_post(busPtr.get(), message);
 }
 
+// can be called from streaming thread
 void GstStreamingSource::setTee(GstElement* tee) noexcept
 {
     assert(tee);
-    assert(!_teePtr);
-
-    if(!tee || _teePtr)
+    if(!tee)
         return;
 
     auto onPadAddedCallback =
