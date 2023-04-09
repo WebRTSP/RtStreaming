@@ -256,13 +256,15 @@ void GstStreamingSource::setTee(GstElement* tee) noexcept
     if(!tee)
         return;
 
+    GstElement* pipeline = this->pipeline();
+
     auto onPadAddedCallback =
         (void (*) (GstElement*, GstPad*, gpointer*))
         [] (GstElement* tee, GstPad*, gpointer*) {
             postTeePadAdded(tee);
         };
     g_signal_connect(tee, "pad-added",
-        G_CALLBACK(onPadAddedCallback), pipeline());
+        G_CALLBACK(onPadAddedCallback), pipeline);
 
     auto onPadRemovedCallback =
         (void (*) (GstElement*, GstPad*, gpointer*))
@@ -270,20 +272,21 @@ void GstStreamingSource::setTee(GstElement* tee) noexcept
             postTeePadRemoved(tee);
         };
     g_signal_connect(tee, "pad-removed",
-        G_CALLBACK(onPadRemovedCallback), pipeline());
-
-    GstPadPtr fakeSinkTeePadPtr(gst_element_get_request_pad(tee, "src_%u"));
-    GstPad* fakeSinkTeePad = fakeSinkTeePadPtr.get();
+        G_CALLBACK(onPadRemovedCallback), pipeline);
 
     _fakeSinkPtr.reset(gst_element_factory_make("fakesink", nullptr));
     GstElement* fakeSink = _fakeSinkPtr.get();
     g_object_set(fakeSink, "sync", TRUE, NULL);
-    gst_bin_add(GST_BIN(pipeline()), GST_ELEMENT(gst_object_ref(fakeSink)));
-    gst_element_sync_state_with_parent(fakeSink);
-    GstPadPtr fakeSinkPadPtr(gst_element_get_static_pad(fakeSink, "sink"));
-    GstPad* fakeSinkPad = fakeSinkPadPtr.get();
 
-    if(GST_PAD_LINK_OK != gst_pad_link(fakeSinkTeePad, fakeSinkPad)) {
+    gst_bin_add(GST_BIN(pipeline), GST_ELEMENT(gst_object_ref(fakeSink)));
+
+    GstPadPtr teePadPtr(gst_element_get_request_pad(tee, "src_%u"));
+    GstPadPtr fakeSinkPadPtr(gst_element_get_static_pad(fakeSink, "sink"));
+    if(GST_PAD_LINK_OK != gst_pad_link(teePadPtr.get(), fakeSinkPadPtr.get())) {
+        g_assert(false);
+    }
+
+    if(!gst_element_sync_state_with_parent(fakeSink)) {
         g_assert(false);
     }
 
