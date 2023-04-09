@@ -31,8 +31,8 @@ protected:
 
 private:
     void setState(GstState) noexcept;
-    void play() noexcept;
-    void stop() noexcept;
+    void play() noexcept {}
+    void stop() noexcept {}
 
     static void onNegotiationNeeded(
         MessageProxy*,

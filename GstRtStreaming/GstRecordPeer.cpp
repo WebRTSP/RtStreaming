@@ -380,11 +380,3 @@ void GstRecordPeer::prepare(
 
     internalPrepare();
 }
-
-void GstRecordPeer::play() noexcept
-{
-}
-
-void GstRecordPeer::stop() noexcept
-{
-}
