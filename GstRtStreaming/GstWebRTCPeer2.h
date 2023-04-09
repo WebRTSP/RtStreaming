@@ -25,7 +25,6 @@ public:
 
 protected:
     GstElement* tee() const noexcept;
-    GstPad* teeSrcPad() const noexcept;
     GstElement* queue() const noexcept;
 
     void onMessage(GstMessage*);
@@ -78,6 +77,5 @@ private:
     gulong _eosHandlerId = 0;
 
     GstElementPtr _teePtr;
-    GstPadPtr _teeSrcPadPtr;
     GstElementPtr _queuePtr;
 };

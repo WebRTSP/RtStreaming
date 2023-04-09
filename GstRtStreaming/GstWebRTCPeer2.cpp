@@ -57,7 +57,6 @@ struct TeardownData
 
     GstElementPtr pipelinePtr;
     GstElementPtr teePtr;
-    GstPadPtr teeSrcPadPtr;
     GstElementPtr queuePtr;
     GstElementPtr rtcbinPtr;
 };
@@ -75,20 +74,25 @@ RemovePeerElements(
 
     GstElement* pipeline = data->pipelinePtr.get();
     GstElement* tee = data->teePtr.get();
-    GstPad* teeSrcPad = data->teeSrcPadPtr.get();
-    GstElement* rtcbin = data->rtcbinPtr.get();
     GstElement* queue = data->queuePtr.get();
+    GstElement* rtcbin = data->rtcbinPtr.get();
 
-    GstPadPtr teeSrcPadPeer(gst_pad_get_peer(teeSrcPad));
-    gst_pad_unlink(teeSrcPad, teeSrcPadPeer.get());
+    GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(queue, "sink"));
+    GstPadPtr teeSrcPadPtr(gst_pad_get_peer(queueSinkPadPtr.get()));
 
-    gst_bin_remove(GST_BIN(pipeline), rtcbin);
-    gst_element_set_state(rtcbin, GST_STATE_NULL);
+    gst_pad_unlink(teeSrcPadPtr.get(), queueSinkPadPtr.get());
+    gst_element_release_request_pad(tee, teeSrcPadPtr.get());
 
-    gst_bin_remove(GST_BIN(pipeline), queue);
+    GstPadPtr queueSrcPadPtr(gst_element_get_static_pad(queue, "src"));
+    GstPadPtr rtcbinSinkPadPtr(gst_pad_get_peer(queueSrcPadPtr.get()));
+
+    gst_pad_unlink(queueSrcPadPtr.get(), rtcbinSinkPadPtr.get());
+    gst_element_release_request_pad(rtcbin, rtcbinSinkPadPtr.get());
+
+    gst_bin_remove_many(GST_BIN(pipeline), queue, rtcbin, NULL);
+
     gst_element_set_state(queue, GST_STATE_NULL);
-
-    gst_element_release_request_pad(tee, teeSrcPad);
+    gst_element_set_state(rtcbin, GST_STATE_NULL);
 
     return GST_PAD_PROBE_REMOVE;
 }
@@ -109,19 +113,19 @@ GstWebRTCPeer2::~GstWebRTCPeer2()
     TeardownData* data = new TeardownData {
         .pipelinePtr = GstElementPtr(GST_ELEMENT(gst_object_ref(pipeline()))),
         .teePtr = std::move(_teePtr),
-        .teeSrcPadPtr = std::move(_teeSrcPadPtr),
         .queuePtr = std::move(_queuePtr),
         .rtcbinPtr = GstElementPtr(GST_ELEMENT(gst_object_ref(webRtcBin()))),
     };
 
+    GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(data->queuePtr.get(), "sink"));
+    GstPadPtr teeSrcPadPtr(gst_pad_get_peer(queueSinkPadPtr.get()));
+
     gst_pad_add_probe(
-        data->teeSrcPadPtr.get(),
+        teeSrcPadPtr.get(),
         GST_PAD_PROBE_TYPE_IDLE,
         RemovePeerElements,
         data,
-        [] (void* userData) {
-            delete static_cast<TeardownData*>(userData);
-        });
+        [] (void* userData) { delete static_cast<TeardownData*>(userData); });
 }
 
 void GstWebRTCPeer2::onMessage(GstMessage* message)
@@ -247,11 +251,6 @@ void GstWebRTCPeer2::postEos(
 GstElement* GstWebRTCPeer2::tee() const noexcept
 {
     return _teePtr.get();
-}
-
-GstPad* GstWebRTCPeer2::teeSrcPad() const noexcept
-{
-    return _teeSrcPadPtr.get();
 }
 
 GstElement* GstWebRTCPeer2::queue() const noexcept
@@ -496,6 +495,17 @@ void GstWebRTCPeer2::setRemoteSdp(const std::string& sdp) noexcept
         "set-remote-description", sessionDescription, promise);
 }
 
+namespace {
+
+struct PrepareData {
+    GstElementPtr pipelinePtr;
+    GstElementPtr teePtr;
+    GstElementPtr queuePtr;
+    GstElementPtr rtcBinPtr;
+};
+
+}
+
 void GstWebRTCPeer2::internalPrepare() noexcept
 {
     if(!clientAttached()) {
@@ -516,46 +526,67 @@ void GstWebRTCPeer2::internalPrepare() noexcept
     }
 
     _queuePtr.reset(gst_element_factory_make("queue", nullptr));
-    setWebRtcBin(GstElementPtr(gst_element_factory_make("webrtcbin", nullptr)));
-
     GstElement* queue = _queuePtr.get();
-    GstElement* rtcbin = webRtcBin();
-
     g_object_set(queue, "silent", true, nullptr);
     gst_util_set_object_arg(G_OBJECT(queue), "leaky", "downstream");
 
-    gst_bin_add_many(
-        GST_BIN(pipeline),
-        GST_ELEMENT(gst_object_ref(queue)),
-        GST_ELEMENT(gst_object_ref(rtcbin)),
-        nullptr);
-
-    _teeSrcPadPtr.reset(gst_element_get_request_pad(tee, "src_%u"));
-
-    GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(queue, "sink"));
-    GstPadPtr queueSrcPadPtr(gst_element_get_static_pad(queue, "src"));
-
-    GstPadPtr rtcbinSinkPadPtr(gst_element_get_request_pad(rtcbin, "sink_%u"));
-
-    if(GST_PAD_LINK_OK != gst_pad_link(_teeSrcPadPtr.get(), queueSinkPadPtr.get())) {
-        g_assert(false);
-    }
-
-    if(GST_PAD_LINK_OK != gst_pad_link(queueSrcPadPtr.get(), rtcbinSinkPadPtr.get())) {
-        g_assert(false);
-    }
-
+    setWebRtcBin(GstElementPtr(gst_element_factory_make("webrtcbin", nullptr)));
+    GstElement* rtcbin = webRtcBin();
     prepareWebRtcBin();
 
-    if(!gst_element_sync_state_with_parent(tee)) {
-        g_assert(false);
-    }
-    if(!gst_element_sync_state_with_parent(queue)) {
-        g_assert(false);
-    }
-    if(!gst_element_sync_state_with_parent(rtcbin)) {
-        g_assert(false);
-    }
+    GstPadPtr teeSinkPadPtr(gst_element_get_static_pad(tee, "sink"));
+    GstPadPtr teePeerSrcPadPtr(gst_pad_get_peer(teeSinkPadPtr.get()));
+
+    PrepareData* prepareData =
+        new PrepareData {
+            GstElementPtr(GST_ELEMENT(gst_object_ref(pipeline))),
+            GstElementPtr(GST_ELEMENT(gst_object_ref(tee))),
+            GstElementPtr(GST_ELEMENT(gst_object_ref(queue))),
+            GstElementPtr(GST_ELEMENT(gst_object_ref(rtcbin)))
+        };
+
+    gst_pad_add_probe(
+        teePeerSrcPadPtr.get(),
+        GST_PAD_PROBE_TYPE_IDLE,
+        [] (GstPad*, GstPadProbeInfo*, gpointer data) -> GstPadProbeReturn {
+            PrepareData* prepareData = static_cast<PrepareData*>(data);
+            GstElement* pipeline = prepareData->pipelinePtr.get();
+            GstElement* tee = prepareData->teePtr.get();
+            GstElement* queue = prepareData->queuePtr.get();
+            GstElement* rtcbin = prepareData->rtcBinPtr.get();
+
+            gst_bin_add_many(
+                GST_BIN(pipeline),
+                GST_ELEMENT(gst_object_ref(queue)),
+                GST_ELEMENT(gst_object_ref(rtcbin)),
+                nullptr);
+
+            GstPadPtr teeSrcPadPtr(gst_element_get_request_pad(tee, "src_%u"));
+            GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(queue, "sink"));
+
+            if(GST_PAD_LINK_OK != gst_pad_link(teeSrcPadPtr.get(), queueSinkPadPtr.get())) {
+                g_assert(false);
+            }
+
+            GstPadPtr queueSrcPadPtr(gst_element_get_static_pad(queue, "src"));
+            GstPadPtr rtcbinSinkPadPtr(gst_element_get_request_pad(rtcbin, "sink_%u"));
+
+            if(GST_PAD_LINK_OK != gst_pad_link(queueSrcPadPtr.get(), rtcbinSinkPadPtr.get())) {
+                g_assert(false);
+            }
+
+            if(!gst_element_sync_state_with_parent(queue)) {
+                g_assert(false);
+            }
+
+            if(!gst_element_sync_state_with_parent(rtcbin)) {
+                g_assert(false);
+            }
+
+            return GST_PAD_PROBE_REMOVE;
+        },
+        prepareData,
+        [] (gpointer data) { delete(static_cast<PrepareData*>(data)); });
 }
 
 void GstWebRTCPeer2::prepare(
