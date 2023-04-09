@@ -95,9 +95,9 @@ gboolean GstStreamingSource::onBusMessage(GstMessage* message)
                 break;
             }
 
-            if(gst_message_has_name(message, "tee")) {
+            if(gst_message_has_name(message, "tee"))
                 onTeeAvailable(GST_ELEMENT(GST_MESSAGE_SRC(message)));
-            } else if(gst_message_has_name(message, "tee-pad-added"))
+            else if(gst_message_has_name(message, "tee-pad-added"))
                 onTeePadAdded();
             else if(gst_message_has_name(message, "tee-pad-removed"))
                 onTeePadRemoved();
