@@ -86,11 +86,12 @@ gboolean GstStreamingSource::onBusMessage(GstMessage* message)
             if(!structure)
                 break;
 
-            MessageProxy* target = nullptr;
-            if(gst_structure_get(structure, "target", MESSAGE_PROXY_TYPE, &target, nullptr)) {
-                g_signal_emit_by_name(target, "message", message);
-                g_object_unref(target);
-
+            if(gst_structure_has_field(structure, "target")) {
+                MessageProxy* target = nullptr;
+                if(gst_structure_get(structure, "target", MESSAGE_PROXY_TYPE, &target, nullptr)) {
+                    g_signal_emit_by_name(target, "message", message);
+                    g_object_unref(target);
+                }
                 break;
             }
 
