@@ -14,7 +14,11 @@
 #include "GstRecordPeer.h"
 
 
-GstRecordStreamer::GstRecordStreamer()
+GstRecordStreamer::GstRecordStreamer(
+    const RecorderConnectedCallback& recorderConnectedCallback,
+    const RecorderConnectedCallback& recorderDisconnectedCallback) :
+    _recorderConnectedCallback(recorderConnectedCallback),
+    _recorderDisconnectedCallback(recorderDisconnectedCallback)
 {
 }
 
@@ -132,6 +136,9 @@ void GstRecordStreamer::recordPeerDestroyed(MessageProxy* messageProxy)
         destroyPeers();
     else
         cleanup();
+
+    if(_recorderDisconnectedCallback)
+        _recorderDisconnectedCallback();
 }
 
 std::unique_ptr<WebRTCPeer> GstRecordStreamer::createRecordPeer() noexcept
@@ -161,6 +168,13 @@ std::unique_ptr<WebRTCPeer> GstRecordStreamer::createRecordPeer() noexcept
         std::make_unique<GstRecordPeer>(_recordPeerProxy, pipeline(), webRtcBin());
 
     return std::move(recordPeerPtr);
+}
+
+
+void GstRecordStreamer::onPrerolled() noexcept
+{
+    if(_recorderConnectedCallback)
+        _recorderConnectedCallback();
 }
 
 void GstRecordStreamer::peerAttached() noexcept

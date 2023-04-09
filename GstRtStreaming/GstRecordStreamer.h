@@ -6,7 +6,11 @@
 class GstRecordStreamer : public GstStreamingSource
 {
 public:
-    GstRecordStreamer();
+    typedef std::function<void ()> RecorderConnectedCallback;
+    typedef std::function<void ()> RecorderDisconnectedCallback;
+    GstRecordStreamer(
+        const RecorderConnectedCallback&,
+        const RecorderDisconnectedCallback&);
 
     std::unique_ptr<WebRTCPeer> createRecordPeer() noexcept override;
 
@@ -15,6 +19,7 @@ protected:
     void recordPrepare() noexcept;
     void cleanup() noexcept override;
 
+    void onPrerolled() noexcept override;
     void peerAttached() noexcept override;
     void lastPeerDetached() noexcept override;
 
@@ -27,6 +32,9 @@ private:
     void recordPeerDestroyed(MessageProxy*);
 
 private:
+    const RecorderConnectedCallback _recorderConnectedCallback;
+    const RecorderDisconnectedCallback _recorderDisconnectedCallback;
+
     GstElementPtr _rtcbinPtr;
 
     MessageProxy* _recordPeerProxy = nullptr;
