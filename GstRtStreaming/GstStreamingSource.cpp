@@ -258,7 +258,7 @@ void GstStreamingSource::setTee(GstElement* tee) noexcept
 
     auto onPadAddedCallback =
         (void (*) (GstElement*, GstPad*, gpointer*))
-        [] (GstElement* tee, GstPad* pad, gpointer*) {
+        [] (GstElement* tee, GstPad*, gpointer*) {
             postTeePadAdded(tee);
         };
     g_signal_connect(tee, "pad-added",
