@@ -198,13 +198,13 @@ void GstStreamingSource::onTeeAvailable(GstElement* tee)
 void GstStreamingSource::onTeePadAdded()
 {
     if(hasPeers())
-        peerAttached();
+        onPeerAttached();
 }
 
 void GstStreamingSource::onTeePadRemoved()
 {
     if(!hasPeers()) // only fakesink is linked
-        lastPeerDetached();
+        onLastPeerDetached();
 }
 
 // will be called from streaming thread
@@ -304,7 +304,7 @@ GstElement* GstStreamingSource::tee() const noexcept
     return _teePtr.get();
 }
 
-void GstStreamingSource::peerAttached() noexcept
+void GstStreamingSource::onPeerAttached() noexcept
 {
     GstElement* pipeline = this->pipeline();
     assert(pipeline);
@@ -317,17 +317,17 @@ void GstStreamingSource::peerAttached() noexcept
         play();
 }
 
-void GstStreamingSource::lastPeerDetached() noexcept
+void GstStreamingSource::onLastPeerDetached() noexcept
 {
     cleanup();
 }
 
-void GstStreamingSource::peerDestroyed(MessageProxy* messageProxy)
+void GstStreamingSource::onPeerDestroyed(MessageProxy* messageProxy)
 {
     _peers.erase(messageProxy);
 
     if(_peers.empty())
-        lastPeerDestroyed();
+        onLastPeerDestroyed();
 }
 
 std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
@@ -341,7 +341,7 @@ std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
     g_object_weak_ref(G_OBJECT(messageProxy),
         [] (gpointer data, GObject* object) {
             GstStreamingSource* self = static_cast<GstStreamingSource*>(data);
-            self->peerDestroyed(_MESSAGE_PROXY(object));
+            self->onPeerDestroyed(_MESSAGE_PROXY(object));
         }, this);
 
     _peers.insert(messageProxy);

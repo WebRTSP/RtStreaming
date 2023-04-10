@@ -39,9 +39,9 @@ protected:
     virtual void cleanup() noexcept;
 
     virtual void onPrerolled() noexcept {}
-    virtual void peerAttached() noexcept;
-    virtual void lastPeerDetached() noexcept;
-    virtual void lastPeerDestroyed() noexcept {}
+    virtual void onPeerAttached() noexcept;
+    virtual void onLastPeerDetached() noexcept;
+    virtual void onLastPeerDestroyed() noexcept {}
 
     unsigned peerCount() const noexcept;
     bool hasPeers() const noexcept;
@@ -61,7 +61,7 @@ private:
     void onTeePadAdded();
     void onTeePadRemoved();
 
-    void peerDestroyed(MessageProxy*);
+    void onPeerDestroyed(MessageProxy*);
     void destroyPeer(MessageProxy*);
 
 private:

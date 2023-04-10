@@ -20,8 +20,8 @@ protected:
     void cleanup() noexcept override;
 
     void onPrerolled() noexcept override;
-    void peerAttached() noexcept override;
-    void lastPeerDetached() noexcept override;
+    void onPeerAttached() noexcept override;
+    void onLastPeerDetached() noexcept override;
 
 private:
     GstElement* webRtcBin() const noexcept;
@@ -29,7 +29,7 @@ private:
     void srcPadAdded(GstElement* decodebin, GstPad*);
     void noMorePads(GstElement* decodebin);
 
-    void recordPeerDestroyed(MessageProxy*);
+    void onRecordPeerDestroyed(MessageProxy*);
 
 private:
     const RecorderConnectedCallback _recorderConnectedCallback;

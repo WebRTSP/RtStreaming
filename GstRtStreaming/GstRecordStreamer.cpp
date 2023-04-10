@@ -128,7 +128,7 @@ void GstRecordStreamer::cleanup() noexcept
     GstStreamingSource::cleanup();
 }
 
-void GstRecordStreamer::recordPeerDestroyed(MessageProxy* messageProxy)
+void GstRecordStreamer::onRecordPeerDestroyed(MessageProxy* messageProxy)
 {
     _recordPeerProxy = nullptr;
 
@@ -161,7 +161,7 @@ std::unique_ptr<WebRTCPeer> GstRecordStreamer::createRecordPeer() noexcept
     g_object_weak_ref(G_OBJECT(_recordPeerProxy),
         [] (gpointer data, GObject* object) {
             GstRecordStreamer* self = static_cast<GstRecordStreamer*>(data);
-            self->recordPeerDestroyed(_MESSAGE_PROXY(object));
+            self->onRecordPeerDestroyed(_MESSAGE_PROXY(object));
         }, this);
 
     std::unique_ptr<GstRecordPeer> recordPeerPtr =
@@ -177,12 +177,12 @@ void GstRecordStreamer::onPrerolled() noexcept
         _recorderConnectedCallback();
 }
 
-void GstRecordStreamer::peerAttached() noexcept
+void GstRecordStreamer::onPeerAttached() noexcept
 {
     // just to ignore implementation from parent
 }
 
-void GstRecordStreamer::lastPeerDetached() noexcept
+void GstRecordStreamer::onLastPeerDetached() noexcept
 {
     // pipeline should be active while record peer is active
     if(!_recordPeerProxy)
