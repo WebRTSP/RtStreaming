@@ -9,8 +9,8 @@ public:
     typedef std::function<void ()> RecorderConnectedCallback;
     typedef std::function<void ()> RecorderDisconnectedCallback;
     GstRecordStreamer(
-        const RecorderConnectedCallback&,
-        const RecorderDisconnectedCallback&);
+        const RecorderConnectedCallback& = RecorderConnectedCallback(),
+        const RecorderDisconnectedCallback& = RecorderDisconnectedCallback());
 
     std::unique_ptr<WebRTCPeer> createRecordPeer() noexcept override;
 
