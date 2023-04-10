@@ -304,25 +304,6 @@ GstElement* GstStreamingSource::tee() const noexcept
     return _teePtr.get();
 }
 
-void GstStreamingSource::cleanup() noexcept
-{
-    GstElement* pipeline = _pipelinePtr.get();
-    if(!pipeline) {
-        assert(!_teePtr && !_fakeSinkPtr);
-        return;
-    }
-
-    stop();
-
-    _teePtr.reset();
-    _fakeSinkPtr.reset();
-
-    GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
-    gst_bus_remove_watch(busPtr.get());
-
-    _pipelinePtr.reset();
-}
-
 void GstStreamingSource::peerAttached() noexcept
 {
     GstElement* pipeline = this->pipeline();
@@ -404,4 +385,23 @@ void GstStreamingSource::destroyPeers() noexcept
     for(MessageProxy* messageProxy: _peers) {
         destroyPeer(messageProxy);
     }
+}
+
+void GstStreamingSource::cleanup() noexcept
+{
+    GstElement* pipeline = _pipelinePtr.get();
+    if(!pipeline) {
+        assert(!_teePtr && !_fakeSinkPtr);
+        return;
+    }
+
+    stop();
+
+    _teePtr.reset();
+    _fakeSinkPtr.reset();
+
+    GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
+    gst_bus_remove_watch(busPtr.get());
+
+    _pipelinePtr.reset();
 }
