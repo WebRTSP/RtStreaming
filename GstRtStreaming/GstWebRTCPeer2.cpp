@@ -53,7 +53,7 @@ namespace {
 
 struct TeardownData
 {
-    std::atomic_flag guard;
+    std::atomic_flag guard = ATOMIC_FLAG_INIT;
 
     GstElementPtr pipelinePtr;
     GstElementPtr teePtr;
