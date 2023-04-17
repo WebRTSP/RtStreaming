@@ -30,6 +30,9 @@ protected:
     void onMessage(GstMessage*);
 
 private:
+    const std::shared_ptr<spdlog::logger>& log()
+        { return _log; }
+
     void play() noexcept {}
     void stop() noexcept {}
 
@@ -71,6 +74,8 @@ private:
     void prepareWebRtcBin() noexcept;
 
 private:
+    const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
+
     MessageProxy* _messageProxy;
     gulong _teeHandlerId = 0;
     gulong _messageHandlerId = 0;
