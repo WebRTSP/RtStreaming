@@ -83,4 +83,7 @@ private:
 
     GstElementPtr _teePtr;
     GstElementPtr _queuePtr;
+
+    std::atomic_flag _prepared = ATOMIC_FLAG_INIT;
+    gulong _prepareProbe = 0;
 };

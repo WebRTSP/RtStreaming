@@ -110,22 +110,33 @@ GstWebRTCPeer2::~GstWebRTCPeer2()
     if(!_teePtr)
         return; // nothing to teardown
 
-    TeardownData* data = new TeardownData {
-        .pipelinePtr = GstElementPtr(GST_ELEMENT(gst_object_ref(pipeline()))),
-        .teePtr = std::move(_teePtr),
-        .queuePtr = std::move(_queuePtr),
-        .rtcbinPtr = GstElementPtr(GST_ELEMENT(gst_object_ref(webRtcBin()))),
-    };
+    GstPadPtr teeSinkPadPtr(gst_element_get_static_pad(_teePtr.get(), "sink"));
+    GstPadPtr teePeerSrcPadPtr(gst_pad_get_peer(teeSinkPadPtr.get()));
 
-    GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(data->queuePtr.get(), "sink"));
-    GstPadPtr teeSrcPadPtr(gst_pad_get_peer(queueSinkPadPtr.get()));
+    if(!_prepared.test_and_set()) {
+        log()->warn("Peer was not prepared. Skipping teardown...");
+        g_assert(_prepareProbe);
+        gst_pad_remove_probe(teePeerSrcPadPtr.get(), _prepareProbe);
+    } else {
+        log()->debug("Teardown peer...");
+        TeardownData* data = new TeardownData {
+            .pipelinePtr = GstElementPtr(GST_ELEMENT(gst_object_ref(pipeline()))),
+            .teePtr = std::move(_teePtr),
+            .queuePtr = std::move(_queuePtr),
+            .rtcbinPtr = GstElementPtr(GST_ELEMENT(gst_object_ref(webRtcBin()))),
+        };
 
-    gst_pad_add_probe(
-        teeSrcPadPtr.get(),
-        GST_PAD_PROBE_TYPE_IDLE,
-        RemovePeerElements,
-        data,
-        [] (void* userData) { delete static_cast<TeardownData*>(userData); });
+        GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(data->queuePtr.get(), "sink"));
+        GstPadPtr teeSrcPadPtr(gst_pad_get_peer(queueSinkPadPtr.get()));
+
+        gst_pad_add_probe(
+            teeSrcPadPtr.get(),
+            GST_PAD_PROBE_TYPE_IDLE,
+            RemovePeerElements,
+            data,
+            [] (void* userData) { delete static_cast<TeardownData*>(userData); });
+    }
+
 }
 
 void GstWebRTCPeer2::onMessage(GstMessage* message)
@@ -498,6 +509,8 @@ void GstWebRTCPeer2::setRemoteSdp(const std::string& sdp) noexcept
 namespace {
 
 struct PrepareData {
+    std::atomic_flag& guard;
+
     GstElementPtr pipelinePtr;
     GstElementPtr teePtr;
     GstElementPtr queuePtr;
@@ -539,13 +552,14 @@ void GstWebRTCPeer2::internalPrepare() noexcept
 
     PrepareData* prepareData =
         new PrepareData {
+            _prepared,
             GstElementPtr(GST_ELEMENT(gst_object_ref(pipeline))),
             GstElementPtr(GST_ELEMENT(gst_object_ref(tee))),
             GstElementPtr(GST_ELEMENT(gst_object_ref(queue))),
             GstElementPtr(GST_ELEMENT(gst_object_ref(rtcbin)))
         };
 
-    gst_pad_add_probe(
+    _prepareProbe = gst_pad_add_probe(
         teePeerSrcPadPtr.get(),
         GST_PAD_PROBE_TYPE_IDLE,
         [] (GstPad*, GstPadProbeInfo*, gpointer data) -> GstPadProbeReturn {
@@ -554,6 +568,9 @@ void GstWebRTCPeer2::internalPrepare() noexcept
             GstElement* tee = prepareData->teePtr.get();
             GstElement* queue = prepareData->queuePtr.get();
             GstElement* rtcbin = prepareData->rtcBinPtr.get();
+
+            if(prepareData->guard.test_and_set())
+                return GST_PAD_PROBE_OK;
 
             gst_bin_add_many(
                 GST_BIN(pipeline),
