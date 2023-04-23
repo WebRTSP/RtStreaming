@@ -85,10 +85,12 @@ RemovePeerElements(
     GstPadPtr rtcbinSinkPadPtr(gst_pad_get_peer(queueSrcPadPtr.get()));
     gst_element_release_request_pad(rtcbin, rtcbinSinkPadPtr.get());
 
-    gst_bin_remove_many(GST_BIN(pipeline), queue, rtcbin, NULL);
-
-    gst_element_set_state(queue, GST_STATE_NULL);
+    // it looks like order of state change is important
+    // since queue's src pad thread can be blocked by probe deep inside webrtcbin
     gst_element_set_state(rtcbin, GST_STATE_NULL);
+    gst_element_set_state(queue, GST_STATE_NULL);
+
+    gst_bin_remove_many(GST_BIN(pipeline), queue, rtcbin, NULL);
 
     return GST_PAD_PROBE_REMOVE;
 }
