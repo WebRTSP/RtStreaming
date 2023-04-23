@@ -64,7 +64,7 @@ struct TeardownData
 GstPadProbeReturn
 RemovePeerElements(
     GstPad* pad,
-    GstPadProbeInfo* info,
+    GstPadProbeInfo*,
     gpointer userData)
 {
     TeardownData* data = static_cast<TeardownData*>(userData);
