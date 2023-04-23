@@ -83,8 +83,6 @@ RemovePeerElements(
 
     GstPadPtr queueSrcPadPtr(gst_element_get_static_pad(queue, "src"));
     GstPadPtr rtcbinSinkPadPtr(gst_pad_get_peer(queueSrcPadPtr.get()));
-
-    gst_pad_unlink(queueSrcPadPtr.get(), rtcbinSinkPadPtr.get());
     gst_element_release_request_pad(rtcbin, rtcbinSinkPadPtr.get());
 
     gst_bin_remove_many(GST_BIN(pipeline), queue, rtcbin, NULL);
