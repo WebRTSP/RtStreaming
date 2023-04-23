@@ -63,7 +63,7 @@ struct TeardownData
 
 GstPadProbeReturn
 RemovePeerElements(
-    GstPad* pad,
+    GstPad* teeSrcPad,
     GstPadProbeInfo*,
     gpointer userData)
 {
@@ -78,10 +78,8 @@ RemovePeerElements(
     GstElement* rtcbin = data->rtcbinPtr.get();
 
     GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(queue, "sink"));
-    GstPadPtr teeSrcPadPtr(gst_pad_get_peer(queueSinkPadPtr.get()));
-
-    gst_pad_unlink(teeSrcPadPtr.get(), queueSinkPadPtr.get());
-    gst_element_release_request_pad(tee, teeSrcPadPtr.get());
+    gst_pad_unlink(teeSrcPad, queueSinkPadPtr.get());
+    gst_element_release_request_pad(tee, teeSrcPad);
 
     GstPadPtr queueSrcPadPtr(gst_element_get_static_pad(queue, "src"));
     GstPadPtr rtcbinSinkPadPtr(gst_pad_get_peer(queueSrcPadPtr.get()));
