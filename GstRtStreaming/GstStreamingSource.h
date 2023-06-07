@@ -36,6 +36,7 @@ protected:
     GstElement* tee() const noexcept;
 
     virtual bool prepare() noexcept = 0;
+    GstElement* releasePipeline() noexcept;
     virtual void cleanup() noexcept;
 
     virtual void onPrerolled() noexcept {}

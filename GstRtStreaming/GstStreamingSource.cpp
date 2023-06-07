@@ -387,6 +387,23 @@ void GstStreamingSource::destroyPeers() noexcept
     }
 }
 
+GstElement* GstStreamingSource::releasePipeline() noexcept
+{
+    GstElement* pipeline = _pipelinePtr.get();
+    if(!pipeline) {
+        assert(!_teePtr && !_fakeSinkPtr);
+        return nullptr;
+    }
+
+    _teePtr.reset();
+    _fakeSinkPtr.reset();
+
+    GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
+    gst_bus_remove_watch(busPtr.get());
+
+    return _pipelinePtr.release();
+}
+
 void GstStreamingSource::cleanup() noexcept
 {
     GstElement* pipeline = _pipelinePtr.get();
@@ -397,11 +414,5 @@ void GstStreamingSource::cleanup() noexcept
 
     stop();
 
-    _teePtr.reset();
-    _fakeSinkPtr.reset();
-
-    GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
-    gst_bus_remove_watch(busPtr.get());
-
-    _pipelinePtr.reset();
+    gst_object_unref(releasePipeline());
 }
