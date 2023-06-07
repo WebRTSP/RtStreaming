@@ -35,6 +35,9 @@ private:
     const RecorderConnectedCallback _recorderConnectedCallback;
     const RecorderDisconnectedCallback _recorderDisconnectedCallback;
 
+    gulong _padAddedHandlerId = 0;
+    gulong _noMorePadsHandlerId = 0;
+
     GstElementPtr _rtcbinPtr;
 
     MessageProxy* _recordPeerProxy = nullptr;

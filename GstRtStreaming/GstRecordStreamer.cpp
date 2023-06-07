@@ -65,7 +65,8 @@ void GstRecordStreamer::recordPrepare() noexcept
             GstRecordStreamer* self = static_cast<GstRecordStreamer*>(userData);
             self->srcPadAdded(rtcbin, pad);
         };
-    g_signal_connect(rtcbin, "pad-added", G_CALLBACK(srcPadAddedCallback), this);
+    _padAddedHandlerId =
+        g_signal_connect(rtcbin, "pad-added", G_CALLBACK(srcPadAddedCallback), this);
 
     auto noMorePadsCallback =
         (void (*)(GstElement*,  gpointer))
@@ -73,7 +74,8 @@ void GstRecordStreamer::recordPrepare() noexcept
             GstRecordStreamer* self = static_cast<GstRecordStreamer*>(userData);
             self->noMorePads(rtcbin);
         };
-    g_signal_connect(rtcbin, "no-more-pads", G_CALLBACK(noMorePadsCallback), this);
+    _noMorePadsHandlerId =
+        g_signal_connect(rtcbin, "no-more-pads", G_CALLBACK(noMorePadsCallback), this);
 
     setPipeline(std::move(pipelinePtr));
     _rtcbinPtr = std::move(rtcbinPtr);
@@ -121,6 +123,18 @@ void GstRecordStreamer::noMorePads(GstElement* /*decodebin*/)
 
 void GstRecordStreamer::cleanup() noexcept
 {
+    GstElement* rtcbin = _rtcbinPtr.get();
+    if(!rtcbin) return;
+
+    if(_padAddedHandlerId) {
+        g_signal_handler_disconnect(rtcbin, _padAddedHandlerId);
+        _padAddedHandlerId = 0;
+    }
+    if(_noMorePadsHandlerId) {
+        g_signal_handler_disconnect(rtcbin, _noMorePadsHandlerId);
+        _noMorePadsHandlerId = 0;
+    }
+
     _rtcbinPtr.reset();
 
     assert(_recordPeerProxy == nullptr);
