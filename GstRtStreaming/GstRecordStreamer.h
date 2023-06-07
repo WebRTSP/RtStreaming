@@ -1,14 +1,23 @@
 #pragma once
 
+#include <optional>
+#include <filesystem>
+
 #include "GstStreamingSource.h"
 
 
 class GstRecordStreamer : public GstStreamingSource
 {
 public:
+    struct RecordOptions {
+        std::filesystem::path dir;
+        guint64 maxFileSize = 100 * 1024 * 1024; // 100Mb
+    };
+
     typedef std::function<void ()> RecorderConnectedCallback;
     typedef std::function<void ()> RecorderDisconnectedCallback;
     GstRecordStreamer(
+        const std::optional<RecordOptions>& recordOptions = {},
         const RecorderConnectedCallback& = RecorderConnectedCallback(),
         const RecorderDisconnectedCallback& = RecorderDisconnectedCallback());
 
@@ -24,6 +33,9 @@ protected:
     void onLastPeerDetached() noexcept override;
 
 private:
+    const std::shared_ptr<spdlog::logger>& log()
+        { return _log; }
+
     GstElement* webRtcBin() const noexcept;
 
     void srcPadAdded(GstElement* decodebin, GstPad*);
@@ -31,7 +43,13 @@ private:
 
     void onRecordPeerDestroyed(MessageProxy*);
 
+    bool isRecordToStorageEnabled() const { return _recordOptions.has_value(); }
+    void finalizeRecording(GstElement* pipeline);
+
 private:
+    const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
+
+    const std::optional<RecordOptions> _recordOptions;
     const RecorderConnectedCallback _recorderConnectedCallback;
     const RecorderDisconnectedCallback _recorderDisconnectedCallback;
 

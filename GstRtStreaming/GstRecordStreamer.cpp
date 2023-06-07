@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include <chrono>
+
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
 #include <gst/webrtc/rtptransceiver.h>
@@ -15,8 +17,10 @@
 
 
 GstRecordStreamer::GstRecordStreamer(
+    const std::optional<RecordOptions>& recordOptions,
     const RecorderConnectedCallback& recorderConnectedCallback,
     const RecorderConnectedCallback& recorderDisconnectedCallback) :
+    _recordOptions(recordOptions),
     _recorderConnectedCallback(recorderConnectedCallback),
     _recorderDisconnectedCallback(recorderDisconnectedCallback)
 {
@@ -83,6 +87,14 @@ void GstRecordStreamer::recordPrepare() noexcept
     play();
 }
 
+namespace {
+
+struct FormatLocationData {
+    std::filesystem::path recordingsDir;
+};
+
+}
+
 // will be called from streaming thread
 void GstRecordStreamer::srcPadAdded(
     GstElement* /*rtcbin*/,
@@ -95,11 +107,53 @@ void GstRecordStreamer::srcPadAdded(
     if(GST_PAD_DIRECTION(pad) != GST_PAD_SRC)
         return;
 
-    GstElement* transformBin =
-        gst_parse_bin_from_description(
-            "rtph264depay ! h264parse config-interval=-1 ! rtph264pay pt=96 ! "
-            "capssetter caps=\"application/x-rtp,profile-level-id=(string)42c015\"",
-            TRUE, NULL);
+    bool recordDirAvailable = false;
+    if(_recordOptions) {
+        std::error_code errorCode;
+        std::filesystem::create_directories(_recordOptions->dir, errorCode);
+        recordDirAvailable = errorCode == std::error_code();
+    }
+
+    GstElement* transformBin;
+    if(isRecordToStorageEnabled() && _recordOptions && recordDirAvailable) {
+        transformBin =
+            gst_parse_bin_from_description(
+                "rtph264depay ! h264parse config-interval=-1 ! tee name=record-tee "
+                "record-tee. ! queue name=record-queue leaky=upstream ! splitmuxsink name=record-sink "
+                "record-tee. ! rtph264pay pt=96 ! capssetter caps=\"application/x-rtp,profile-level-id=(string)42c015\" ",
+                TRUE, NULL);
+        GstElementPtr splitmuxsinkPtr(gst_bin_get_by_name(GST_BIN(transformBin), "record-sink"));
+        g_object_set(
+            G_OBJECT(splitmuxsinkPtr.get()),
+            "max-size-bytes",
+            std::max<guint64>(_recordOptions->maxFileSize, 1ull << 20), // >= 1Mb
+            NULL);
+
+        g_signal_connect_data(
+            splitmuxsinkPtr.get(),
+            "format-location",
+            G_CALLBACK(
+                + [] (GstElement* splitmuxsink, guint fragmentId, gpointer userData) -> gchararray {
+                    const FormatLocationData& data = *static_cast<FormatLocationData*>(userData);
+
+                    using namespace std::chrono;
+                    auto timestamp = duration_cast<milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+                    std::string locationTemplate = (data.recordingsDir / (std::to_string(timestamp) + ".mp4")).string();
+
+                    return g_strdup(locationTemplate.c_str());
+                }
+            ),
+            new FormatLocationData { _recordOptions->dir },
+            [] (gpointer userData, GClosure*) { delete(static_cast<FormatLocationData*>(userData)); },
+            GConnectFlags());
+    } else {
+        transformBin =
+            gst_parse_bin_from_description(
+                "rtph264depay ! h264parse config-interval=-1 ! rtph264pay pt=96 ! "
+                "capssetter caps=\"application/x-rtp,profile-level-id=(string)42c015\"",
+                TRUE, NULL);
+    }
+    gst_element_set_name(transformBin, "transform-bin");
     gst_bin_add(GST_BIN(pipeline), transformBin);
     gst_element_sync_state_with_parent(transformBin);
 
@@ -121,6 +175,114 @@ void GstRecordStreamer::noMorePads(GstElement* /*decodebin*/)
 {
 }
 
+namespace {
+
+struct FinalizeRecordingData
+{
+    std::atomic_flag guard = ATOMIC_FLAG_INIT;
+
+    GstElementPtr pipelinePtr;
+    GstElementPtr queuePtr;
+};
+
+GstPadProbeReturn
+FinalizeRecording(
+    GstPad* teeSrcPad,
+    GstPadProbeInfo*,
+    gpointer userData)
+{
+    FinalizeRecordingData* data = static_cast<FinalizeRecordingData*>(userData);
+
+    if(data->guard.test_and_set())
+        return GST_PAD_PROBE_OK;
+
+    GstElement* pipeline = data->pipelinePtr.get();
+    GstElementPtr teePtr(gst_bin_get_by_name(GST_BIN(pipeline), "record-tee"));
+    GstElement* tee = teePtr.get();
+    GstElement* queue = data->queuePtr.get();
+
+    GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(queue, "sink"));
+    gst_pad_unlink(teeSrcPad, queueSinkPadPtr.get());
+    gst_element_release_request_pad(tee, teeSrcPad);
+
+    gst_pad_send_event(queueSinkPadPtr.get(), gst_event_new_eos());
+
+    return GST_PAD_PROBE_REMOVE;
+}
+
+gboolean finalizeRecordingBusMessageCallback(GstBus* bus, GstMessage* message, gpointer userData)
+{
+    if(GST_MESSAGE_TYPE(message) != GST_MESSAGE_ELEMENT)
+        return TRUE;
+
+    const GstStructure* messageStructure = gst_message_get_structure(message);
+    if(!messageStructure)
+        return TRUE;
+
+    if(!gst_structure_has_name(messageStructure, "GstBinForwarded"))
+        return TRUE;
+
+    GstMessagePtr forwardedMessagePtr;
+    GstMessage* forwardedMessage = nullptr;
+    gst_structure_get(messageStructure, "message", GST_TYPE_MESSAGE, &forwardedMessage, NULL);
+    if(!forwardedMessage)
+        return TRUE;
+
+    forwardedMessagePtr.reset(forwardedMessage);
+
+    if(0 != g_strcmp0(GST_OBJECT_NAME(GST_MESSAGE_SRC(forwardedMessage)), "record-sink"))
+        return TRUE;
+
+    FinalizeRecordingData* data = static_cast<FinalizeRecordingData*>(userData);
+
+    gst_element_set_state(data->pipelinePtr.get(), GST_STATE_NULL);
+
+    return FALSE;
+}
+
+}
+
+void GstRecordStreamer::finalizeRecording(GstElement* pipeline)
+{
+    if(!pipeline) return;
+
+    GstElementPtr pipelinePtr(pipeline);
+
+    GstElementPtr queuePtr(gst_bin_get_by_name(GST_BIN(pipeline), "record-queue"));
+    if(!queuePtr) return;
+
+    GstElementPtr transformBinPtr(gst_bin_get_by_name(GST_BIN(pipeline), "transform-bin"));
+
+    GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(queuePtr.get(), "sink"));
+    GstPadPtr teeSrcPadPtr(gst_pad_get_peer(queueSinkPadPtr.get()));
+
+    g_object_set(G_OBJECT(transformBinPtr.get()), "message-forward", TRUE, NULL);
+    g_object_set(G_OBJECT(pipeline), "message-forward", TRUE, NULL);
+    GstBusPtr busPtr(gst_pipeline_get_bus(GST_PIPELINE(pipeline)));
+
+    FinalizeRecordingData* busWatchData = new FinalizeRecordingData {
+        .pipelinePtr = GstElementPtr(GST_ELEMENT(gst_object_ref(pipeline))),
+        .queuePtr = GstElementPtr(GST_ELEMENT(gst_object_ref(queuePtr.get())))
+    };
+    gst_bus_add_watch_full(
+        busPtr.get(),
+        G_PRIORITY_DEFAULT,
+        finalizeRecordingBusMessageCallback,
+        busWatchData,
+        [] (void* userData) { delete static_cast<FinalizeRecordingData*>(userData); });
+
+    FinalizeRecordingData* probeData = new FinalizeRecordingData {
+        .pipelinePtr = GstElementPtr(GST_ELEMENT(gst_object_ref(pipeline))),
+        .queuePtr = GstElementPtr(GST_ELEMENT(gst_object_ref(queuePtr.get())))
+    };
+    gst_pad_add_probe(
+        teeSrcPadPtr.get(),
+        GST_PAD_PROBE_TYPE_IDLE,
+        FinalizeRecording,
+        probeData,
+        [] (void* userData) { delete static_cast<FinalizeRecordingData*>(userData); });
+}
+
 void GstRecordStreamer::cleanup() noexcept
 {
     GstElement* rtcbin = _rtcbinPtr.get();
@@ -139,7 +301,10 @@ void GstRecordStreamer::cleanup() noexcept
 
     assert(_recordPeerProxy == nullptr);
 
-    GstStreamingSource::cleanup();
+    if(isRecordToStorageEnabled())
+        finalizeRecording(releasePipeline());
+    else
+        GstStreamingSource::cleanup();
 }
 
 void GstRecordStreamer::onRecordPeerDestroyed(MessageProxy* messageProxy)

@@ -18,6 +18,7 @@ file(GLOB SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     *.cmake)
 
 add_library(${PROJECT_NAME} ${SOURCES})
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 target_compile_definitions(${PROJECT_NAME} PUBLIC -DGST_USE_UNSTABLE_API)
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${GLIB_INCLUDE_DIRS}
