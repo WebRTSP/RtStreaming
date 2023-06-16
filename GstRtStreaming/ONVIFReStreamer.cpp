@@ -6,6 +6,7 @@
 #include "ONVIF/soapPullPointSubscriptionBindingProxy.h"
 
 #include "CxxPtr/GlibPtr.h"
+#include "CxxPtr/GioPtr.h"
 
 
 namespace {
