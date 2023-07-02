@@ -93,6 +93,32 @@ struct FormatLocationData {
     std::filesystem::path recordingsDir;
 };
 
+struct DtsPtsFixData {
+    GstElementPtr padOwnerPtr;
+};
+
+GstPadProbeReturn
+DtsPtsFixProbeFunc(
+    GstPad* srcPad,
+    GstPadProbeInfo* info,
+    gpointer userData)
+{
+    if(!(GST_PAD_PROBE_INFO_TYPE(info) & GST_PAD_PROBE_TYPE_BUFFER))
+        return GST_PAD_PROBE_PASS;
+
+    DtsPtsFixData& data = *static_cast<DtsPtsFixData*>(userData);
+    if(!data.padOwnerPtr) {
+        data.padOwnerPtr.reset(gst_pad_get_parent_element(srcPad));
+    }
+
+    GstBuffer* buffer = GST_PAD_PROBE_INFO_BUFFER(info);
+
+    GST_BUFFER_DTS(buffer) = gst_element_get_current_running_time(data.padOwnerPtr.get());
+    GST_BUFFER_PTS(buffer) = GST_BUFFER_DTS(buffer);
+
+    return GST_PAD_PROBE_PASS;
+}
+
 }
 
 // will be called from streaming thread
@@ -118,10 +144,20 @@ void GstRecordStreamer::srcPadAdded(
     if(isRecordToStorageEnabled() && _recordOptions && recordDirAvailable) {
         transformBin =
             gst_parse_bin_from_description(
-                "rtph264depay ! h264parse config-interval=-1 ! tee name=record-tee "
-                "record-tee. ! queue name=record-queue leaky=upstream ! splitmuxsink name=record-sink "
-                "record-tee. ! rtph264pay pt=96 ! capssetter caps=\"application/x-rtp,profile-level-id=(string)42c015\" ",
+                "rtph264depay ! tee name=record-tee "
+                "record-tee. ! queue name=record-queue leaky=upstream ! h264parse name=record-parse ! splitmuxsink muxer=\"mp4mux\" name=record-sink "
+                "record-tee. ! h264parse config-interval=-1 ! rtph264pay pt=96 ! capssetter caps=\"application/x-rtp,profile-level-id=(string)42c015\" ",
                 TRUE, NULL);
+
+        GstElementPtr parsePtr(gst_bin_get_by_name(GST_BIN(transformBin), "record-parse"));
+        GstPadPtr parseSrcPadPtr(gst_element_get_static_pad(parsePtr.get(), "src"));
+        gst_pad_add_probe(
+            parseSrcPadPtr.get(),
+            GST_PAD_PROBE_TYPE_DATA_DOWNSTREAM,
+            DtsPtsFixProbeFunc,
+            new DtsPtsFixData,
+            [] (void* userData) { delete static_cast<DtsPtsFixData*>(userData); });
+
         GstElementPtr splitmuxsinkPtr(gst_bin_get_by_name(GST_BIN(transformBin), "record-sink"));
         g_object_set(
             G_OBJECT(splitmuxsinkPtr.get()),
