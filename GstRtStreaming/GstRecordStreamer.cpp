@@ -246,7 +246,7 @@ FinalizeRecording(
     return GST_PAD_PROBE_REMOVE;
 }
 
-gboolean finalizeRecordingBusMessageCallback(GstBus* bus, GstMessage* message, gpointer userData)
+gboolean FinalizeRecordingBusMessageCallback(GstBus* bus, GstMessage* message, gpointer userData)
 {
     if(GST_MESSAGE_TYPE(message) != GST_MESSAGE_ELEMENT)
         return TRUE;
@@ -303,7 +303,7 @@ void GstRecordStreamer::finalizeRecording(GstElement* pipeline)
     gst_bus_add_watch_full(
         busPtr.get(),
         G_PRIORITY_DEFAULT,
-        finalizeRecordingBusMessageCallback,
+        FinalizeRecordingBusMessageCallback,
         busWatchData,
         [] (void* userData) { delete static_cast<FinalizeRecordingData*>(userData); });
 
