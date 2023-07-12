@@ -16,6 +16,7 @@ bool IsEndOfCandidatesSupported();
 bool IsAddTurnServerSupported();
 bool IsIceGatheringStateBroken();
 bool IsIceAgentAvailable();
+bool IsTimestamperAvailable();
 
 IceServerType ParseIceServerType(const std::string& iceServer);
 

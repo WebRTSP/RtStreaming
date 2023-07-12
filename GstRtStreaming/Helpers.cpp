@@ -69,6 +69,14 @@ bool IsIceAgentAvailable()
         (gstMajor == 1 && gstMinor == 17 && gstNano > 0);
 }
 
+bool IsTimestamperAvailable()
+{
+    guint vMajor = 0, vMinor = 0;
+    gst_plugins_base_version(&vMajor, &vMinor, nullptr, nullptr);
+
+    return vMajor > 1 || (vMajor == 1 && vMinor >= 22);
+}
+
 void TryResolveMDNSIceCandidate(
     const std::string& candidate,
     std::string* resolvedCandidate)
