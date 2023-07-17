@@ -85,6 +85,11 @@ gboolean GstWebRTCPeer::onBusMessage(GstMessage* message)
             onEos(true);
             break;
         }
+        case GST_MESSAGE_LATENCY:
+            if(const GstElement* pipeline = this->pipeline()) {
+                gst_bin_recalculate_latency(GST_BIN(pipeline));
+            }
+            break;
         case GST_MESSAGE_APPLICATION: {
             const GstStructure* structure =
                 gst_message_get_structure(message);
