@@ -76,7 +76,7 @@ void GstReStreamer::prepare() noexcept
 }
 
 void GstReStreamer::srcPadAdded(
-    GstElement* /*decodebin*/,
+    GstElement* decodebin,
     GstPad* pad)
 {
     if(webRtcBin())
@@ -127,6 +127,36 @@ void GstReStreamer::srcPadAdded(
             assert(false);
     } else
         return;
+
+    gst_object_ref(decodebin);
+    gst_pad_add_probe(
+        pad,
+        GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM,
+        [] (GstPad* pad, GstPadProbeInfo* info, gpointer userData) -> GstPadProbeReturn {
+            if(GST_EVENT_TYPE(GST_PAD_PROBE_INFO_DATA (info)) != GST_EVENT_EOS)
+                return GST_PAD_PROBE_OK;
+
+            GstElement* element = GST_ELEMENT(userData);
+
+            GstStructure* structure =
+                gst_structure_new(
+                    "eos",
+                    "error", G_TYPE_BOOLEAN, false,
+                    nullptr);
+
+            GstMessage* message =
+                gst_message_new_application(GST_OBJECT(element), structure);
+
+            GstBusPtr busPtr(gst_element_get_bus(element));
+            gst_bus_post(busPtr.get(), message);
+
+            return GST_PAD_PROBE_REMOVE;
+        },
+        decodebin,
+        [] (gpointer userData) {
+            GstElement* element = GST_ELEMENT(userData);
+            gst_object_unref(element);
+        });
 
     setWebRtcBin(GstElementPtr(gst_bin_get_by_name(GST_BIN(pipeline), "srcrtcbin")));
 }
