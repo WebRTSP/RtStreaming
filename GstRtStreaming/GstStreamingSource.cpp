@@ -138,7 +138,9 @@ void GstStreamingSource::onEos(bool error)
 {
     _waitingPeers.clear();
 
-    for(MessageProxy* target: _peers) {
+    // peer can be removed from _peers during handling of EOS
+    const std::unordered_set<MessageProxy*> tmpPeers = _peers;
+    for(MessageProxy* target: tmpPeers) {
         g_signal_emit_by_name(target, "eos", error);
     }
 }
