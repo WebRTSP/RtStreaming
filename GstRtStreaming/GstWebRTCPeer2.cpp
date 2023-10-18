@@ -134,7 +134,6 @@ GstWebRTCPeer2::~GstWebRTCPeer2()
             data,
             [] (void* userData) { delete static_cast<TeardownData*>(userData); });
     }
-
 }
 
 void GstWebRTCPeer2::onMessage(GstMessage* message)
