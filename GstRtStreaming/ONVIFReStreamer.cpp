@@ -1,5 +1,7 @@
 #include "ONVIFReStreamer.h"
 
+#include <gsoap/plugin/wsseapi.h>
+
 #include "ONVIF/DeviceBinding.nsmap"
 #include "ONVIF/soapDeviceBindingProxy.h"
 #include "ONVIF/soapMediaBindingProxy.h"
@@ -18,6 +20,27 @@ enum Error: int32_t {
     NOTIFICATION_MESSAGE_DOES_NOT_CONTAIN_MOTION_EVENT = 4,
 };
 
+struct RequestMediaUrisTaskData
+{
+    const std::string sourceUrl;
+    const std::optional<std::string> username;
+    const std::optional<std::string> password;
+};
+
+void AddAuth(
+    struct soap* soap,
+    const std::optional<std::string>& username,
+    const std::optional<std::string>& password) noexcept
+{
+    if(!username && !password) return;
+
+    soap_wsse_add_UsernameTokenDigest(
+        soap,
+        nullptr,
+        username ? username->c_str() : "",
+        password ? password->c_str() : "");
+}
+
 }
 
 struct ONVIFReStreamer::Private
@@ -35,7 +58,11 @@ struct ONVIFReStreamer::Private
         std::string streamUri;
     };
 
-    Private(ONVIFReStreamer* owner, const std::string sourceUrl) noexcept;
+    Private(
+        ONVIFReStreamer* owner,
+        const std::string sourceUrl,
+        const std::optional<std::string>& username,
+        const std::optional<std::string>& password) noexcept;
 
     void requestMediaUris() noexcept;
     void onMediaUris(std::unique_ptr<MediaUris>&) noexcept;
@@ -46,6 +73,8 @@ struct ONVIFReStreamer::Private
     std::shared_ptr<spdlog::logger> log;
 
     const std::string sourceUrl;
+    const std::optional<std::string> username;
+    const std::optional<std::string> password;
 
     GCancellablePtr mediaUrlRequestTaskCancellablePtr;
     GTaskPtr mediaUrlRequestTaskPtr;
@@ -56,8 +85,16 @@ struct ONVIFReStreamer::Private
 GQuark ONVIFReStreamer::Private::SoapDomain = g_quark_from_static_string("ONVIFReStreamer::SOAP");
 GQuark ONVIFReStreamer::Private::Domain = g_quark_from_static_string("ONVIFReStreamer");
 
-ONVIFReStreamer::Private::Private(ONVIFReStreamer* owner, const std::string sourceUrl) noexcept :
-    owner(owner), log(GstRtStreamingLog()), sourceUrl(sourceUrl)
+ONVIFReStreamer::Private::Private(
+    ONVIFReStreamer* owner,
+    const std::string sourceUrl,
+    const std::optional<std::string>& username,
+    const std::optional<std::string>& password) noexcept :
+    owner(owner),
+    log(GstRtStreamingLog()),
+    sourceUrl(sourceUrl),
+    username(username),
+    password(password)
 {
 }
 
@@ -69,11 +106,12 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
 {
     soap_status status;
 
-    const gchar* sourceUrl = reinterpret_cast<const gchar*>(taskData);
+    const RequestMediaUrisTaskData* data = static_cast<RequestMediaUrisTaskData*>(taskData);
 
-    DeviceBindingProxy deviceProxy(sourceUrl);
+    DeviceBindingProxy deviceProxy(data->sourceUrl.c_str());
     _tds__GetCapabilities getCapabilities;
     _tds__GetCapabilitiesResponse getCapabilitiesResponse;
+    AddAuth(deviceProxy.soap, data->username, data->password);
     status = deviceProxy.GetCapabilities(&getCapabilities, getCapabilitiesResponse);
 
     if(status != SOAP_OK) {
@@ -88,6 +126,8 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
     MediaBindingProxy mediaProxy(mediaEndpoint.c_str());
     _trt__GetProfiles getProfiles;
     _trt__GetProfilesResponse getProfilesResponse;
+
+    AddAuth(mediaProxy.soap, data->username, data->password);
     status = mediaProxy.GetProfiles(&getProfiles, getProfilesResponse);
 
     if(status != SOAP_OK) {
@@ -121,6 +161,7 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
 
     getStreamUri.StreamSetup = &streamSetup;
 
+    AddAuth(mediaProxy.soap, data->username, data->password);
     status = mediaProxy.GetStreamUri(&getStreamUri, getStreamUriResponse);
 
     if(status != SOAP_OK) {
@@ -194,8 +235,8 @@ void ONVIFReStreamer::Private::requestMediaUris() noexcept
     g_task_set_return_on_cancel(task, true);
     g_task_set_task_data(
         task,
-        g_strdup(sourceUrl.c_str()),
-        [] (gpointer sourceUrl) { g_free(sourceUrl); });
+        new RequestMediaUrisTaskData { sourceUrl, username, password },
+        [] (gpointer sourceUrl) { delete(static_cast<RequestMediaUrisTaskData*>(sourceUrl)); });
 
     g_task_run_in_thread(task, requestMediaUrisTaskFunc);
 }
@@ -220,9 +261,11 @@ void ONVIFReStreamer::Private::onMediaUrisRequestFailed() noexcept
 
 ONVIFReStreamer::ONVIFReStreamer(
     const std::string& sourceUrl,
-    const std::string& forceH264ProfileLevelId) :
+    const std::string& forceH264ProfileLevelId,
+    const std::optional<std::string>& username,
+    const std::optional<std::string>& password) noexcept :
     GstReStreamer2(forceH264ProfileLevelId),
-    _p(std::make_unique<Private>(this, sourceUrl))
+    _p(std::make_unique<Private>(this, sourceUrl, username, password))
 {
 }
 
