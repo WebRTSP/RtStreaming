@@ -173,7 +173,7 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
     }
 
     const tt__MediaUri *const mediaUri = getStreamUriResponse.MediaUri;
-    if(!mediaUri) {
+    if(!mediaUri || mediaUri->Uri.empty()) {
         GError* error =
             g_error_new_literal(
                 Domain,
