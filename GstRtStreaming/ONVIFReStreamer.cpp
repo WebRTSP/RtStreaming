@@ -104,16 +104,17 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
     gpointer taskData,
     GCancellable* cancellable)
 {
-    soap_status status;
-
     const RequestMediaUrisTaskData* data = static_cast<RequestMediaUrisTaskData*>(taskData);
 
+    soap_status status;
+
+
     DeviceBindingProxy deviceProxy(data->sourceUrl.c_str());
+
     _tds__GetCapabilities getCapabilities;
     _tds__GetCapabilitiesResponse getCapabilitiesResponse;
     AddAuth(deviceProxy.soap, data->username, data->password);
     status = deviceProxy.GetCapabilities(&getCapabilities, getCapabilitiesResponse);
-
     if(status != SOAP_OK) {
         const char* faultString = soap_fault_string(deviceProxy.soap);
         GError* error = g_error_new_literal(SoapDomain, status, faultString ? faultString : "GetCapabilities failed");
@@ -125,12 +126,11 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
 
 
     MediaBindingProxy mediaProxy(mediaEndpoint.c_str());
+
     _trt__GetProfiles getProfiles;
     _trt__GetProfilesResponse getProfilesResponse;
-
     AddAuth(mediaProxy.soap, data->username, data->password);
     status = mediaProxy.GetProfiles(&getProfiles, getProfilesResponse);
-
     if(status != SOAP_OK) {
         const char* faultString = soap_fault_string(deviceProxy.soap);
         GError* error = g_error_new_literal(SoapDomain, status, faultString ? faultString : "GetProfiles failed");
@@ -165,7 +165,6 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
 
     AddAuth(mediaProxy.soap, data->username, data->password);
     status = mediaProxy.GetStreamUri(&getStreamUri, getStreamUriResponse);
-
     if(status != SOAP_OK) {
         const char* faultString = soap_fault_string(deviceProxy.soap);
         GError* error = g_error_new_literal(SoapDomain, status, faultString ? faultString : "GetStreamUri failed");
@@ -174,7 +173,6 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
     }
 
     const tt__MediaUri *const mediaUri = getStreamUriResponse.MediaUri;
-
     if(!mediaUri) {
         GError* error =
             g_error_new_literal(
