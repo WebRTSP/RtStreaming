@@ -143,6 +143,8 @@ void GstStreamingSource::onEos(bool error)
     for(MessageProxy* target: tmpPeers) {
         g_signal_emit_by_name(target, "eos", error);
     }
+
+    cleanup();
 }
 
 void GstStreamingSource::setPipeline(GstElementPtr&& pipelinePtr) noexcept
