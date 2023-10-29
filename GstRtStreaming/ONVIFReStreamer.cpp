@@ -183,8 +183,41 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
         return;
     }
 
-    const std::string& mediaUriUri = getStreamUriResponse.MediaUri->Uri;
+    GCharPtr uriStringPtr;
+    if(data->username || data->password) {
+        GUriPtr uriPtr(g_uri_parse(mediaUri->Uri.c_str(), G_URI_FLAGS_ENCODED, nullptr));
+        GUri* uri = uriPtr.get();
+        if(!g_uri_get_user(uri) && !g_uri_get_password(uri)) {
+            GCharPtr userPtr(
+                data->username ?
+                    g_uri_escape_string(
+                        data->username->c_str(),
+                        G_URI_RESERVED_CHARS_SUBCOMPONENT_DELIMITERS,
+                        false) :
+                        nullptr);
+            GCharPtr passwordPtr(
+                data->password ?
+                    g_uri_escape_string(
+                        data->password->c_str(),
+                        G_URI_RESERVED_CHARS_SUBCOMPONENT_DELIMITERS,
+                        false) :
+                        nullptr);
+            uriStringPtr.reset(
+                g_uri_join_with_user(
+                    G_URI_FLAGS_ENCODED,
+                    g_uri_get_scheme(uri),
+                    userPtr.get(),
+                    passwordPtr.get(),
+                    g_uri_get_auth_params(uri),
+                    g_uri_get_host(uri),
+                    g_uri_get_port(uri),
+                    g_uri_get_path(uri),
+                    g_uri_get_query(uri),
+                    g_uri_get_fragment(uri)));
+        }
+    }
 
+    const std::string& mediaUriUri = uriStringPtr ? std::string(uriStringPtr.get()) : mediaUri->Uri;
 
     g_task_return_pointer(
         task,
