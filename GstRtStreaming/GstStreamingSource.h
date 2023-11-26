@@ -7,11 +7,12 @@
 
 #include "../WebRTCPeer.h"
 
+#include "GstPipelineOwner.h"
 #include "Log.h"
 #include "MessageProxy.h"
 
 
-class GstStreamingSource
+class GstStreamingSource: public GstPipelineOwner
 {
 public:
     virtual ~GstStreamingSource();
