@@ -183,7 +183,13 @@ void GstRecordStreamer::srcPadAdded(
 
                     using namespace std::chrono;
                     auto timestamp = duration_cast<milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-                    std::string locationTemplate = (data.recordingsDir / (std::to_string(timestamp) + ".mp4")).string();
+                    const std::string fileName = std::to_string(timestamp) + ".mp4";
+                    std::string locationTemplate = (data.recordingsDir / fileName).string();
+
+                    GstPipelineOwner::PostLog(
+                        splitmuxsink,
+                        spdlog::level::info,
+                        fmt::format("Saving to \"{}\"...", fileName));
 
                     return g_strdup(locationTemplate.c_str());
                 }
