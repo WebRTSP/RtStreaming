@@ -10,6 +10,7 @@
 #include <CxxPtr/GstWebRtcPtr.h>
 
 #include "Helpers.h"
+#include "GstPipelineOwner.h"
 
 
 GstWebRTCPeer2::GstWebRTCPeer2(MessageProxy* messageProxy) :
@@ -345,6 +346,16 @@ void GstWebRTCPeer2::onOfferCreated(
     gst_structure_get(reply, "offer",
         GST_TYPE_WEBRTC_SESSION_DESCRIPTION,
         &sessionDescription, NULL);
+
+    if(!sessionDescription) {
+        GstPipelineOwner::PostLog(
+            rtcbin,
+            spdlog::level::err,
+            "No offer from \"create-offer\"");
+        postEos(messageProxy, rtcbin, true);
+        return;
+    }
+
     GstWebRTCSessionDescriptionPtr sessionDescriptionPtr(sessionDescription);
 
     g_signal_emit_by_name(rtcbin,
