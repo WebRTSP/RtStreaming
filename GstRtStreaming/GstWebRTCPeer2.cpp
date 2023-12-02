@@ -322,6 +322,24 @@ void GstWebRTCPeer2::onOfferCreated(
 {
     GstPromisePtr promisePtr(promise);
 
+    switch(gst_promise_wait(promise)) {
+    case GST_PROMISE_RESULT_INTERRUPTED:
+        GstPipelineOwner::PostLog(
+            rtcbin,
+            spdlog::level::debug,
+            "\"create-offer\" interrupted");
+        return;
+    case GST_PROMISE_RESULT_EXPIRED:
+        GstPipelineOwner::PostLog(
+            rtcbin,
+            spdlog::level::debug,
+            "\"create-offer\" expired");
+        return;
+    case GST_PROMISE_RESULT_PENDING:
+    case GST_PROMISE_RESULT_REPLIED:
+        break;
+    }
+
     const GstStructure* reply = gst_promise_get_reply(promise);
     GstWebRTCSessionDescription* sessionDescription = nullptr;
     gst_structure_get(reply, "offer",
@@ -387,6 +405,24 @@ void GstWebRTCPeer2::onAnswerCreated(
 {
     GstPromisePtr promisePtr(promise);
 
+    switch(gst_promise_wait(promise)) {
+    case GST_PROMISE_RESULT_INTERRUPTED:
+        GstPipelineOwner::PostLog(
+            rtcbin,
+            spdlog::level::debug,
+            "\"create-answer\" interrupted");
+        return;
+    case GST_PROMISE_RESULT_EXPIRED:
+        GstPipelineOwner::PostLog(
+            rtcbin,
+            spdlog::level::debug,
+            "\"create-answer\" expired");
+        return;
+    case GST_PROMISE_RESULT_PENDING:
+    case GST_PROMISE_RESULT_REPLIED:
+        break;
+    }
+
     const GstStructure* reply = gst_promise_get_reply(promise);
     GstWebRTCSessionDescription* sessionDescription = nullptr;
     gst_structure_get(reply, "answer",
@@ -425,6 +461,24 @@ void GstWebRTCPeer2::onSetRemoteDescription(
     GstPromise* promise)
 {
     GstPromisePtr promisePtr(promise);
+
+    switch(gst_promise_wait(promise)) {
+    case GST_PROMISE_RESULT_INTERRUPTED:
+        GstPipelineOwner::PostLog(
+            rtcbin,
+            spdlog::level::debug,
+            "\"set-remote-description\" interrupted");
+        return;
+    case GST_PROMISE_RESULT_EXPIRED:
+        GstPipelineOwner::PostLog(
+            rtcbin,
+            spdlog::level::debug,
+            "\"set-remote-description\" expired");
+        return;
+    case GST_PROMISE_RESULT_PENDING:
+    case GST_PROMISE_RESULT_REPLIED:
+        break;
+    }
 
     GstWebRTCSignalingState state = GST_WEBRTC_SIGNALING_STATE_CLOSED;
     g_object_get(rtcbin, "signaling-state", &state, nullptr);
