@@ -431,6 +431,10 @@ void GstWebRTCPeer2::onAnswerCreated(
     GstWebRTCSessionDescriptionPtr sessionDescriptionPtr(sessionDescription);
 
     if(!sessionDescription) {
+        GstPipelineOwner::PostLog(
+            rtcbin,
+            spdlog::level::err,
+            "No answer from \"create-answer\"");
         postEos(messageProxy, rtcbin, true);
         return;
     }
