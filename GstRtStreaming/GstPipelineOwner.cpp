@@ -9,7 +9,7 @@ void GstPipelineOwner::PostLog(
     spdlog::level::level_enum level,
     const std::string& logMessage)
 {
-    g_autoptr(GstBus) bus(gst_element_get_bus(element));
+    g_autoptr(GstBus) bus = gst_element_get_bus(element);
     if(!bus)
         return;
 
