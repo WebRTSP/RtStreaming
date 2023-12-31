@@ -219,8 +219,8 @@ void GstStreamingSource::onTeePadRemoved()
 // will be called from streaming thread
 void GstStreamingSource::postTeeAvailable(GstElement* tee)
 {
-    GstBusPtr busPtr(gst_element_get_bus(tee));
-    if(!busPtr)
+    g_autoptr(GstBus) bus = gst_element_get_bus(tee);
+    if(!bus)
         return;
 
     GstStructure* structure =
@@ -229,14 +229,14 @@ void GstStreamingSource::postTeeAvailable(GstElement* tee)
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(tee), structure);
 
-    gst_bus_post(busPtr.get(), message);
+    gst_bus_post(bus, message);
 }
 
 // will be called from streaming thread
 void GstStreamingSource::postTeePadAdded(GstElement* tee)
 {
-    GstBusPtr busPtr(gst_element_get_bus(tee));
-    if(!busPtr)
+    g_autoptr(GstBus) bus = gst_element_get_bus(tee);
+    if(!bus)
         return;
 
     GstStructure* structure =
@@ -245,14 +245,14 @@ void GstStreamingSource::postTeePadAdded(GstElement* tee)
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(tee), structure);
 
-    gst_bus_post(busPtr.get(), message);
+    gst_bus_post(bus, message);
 }
 
 // will be called from streaming thread
 void GstStreamingSource::postTeePadRemoved(GstElement* tee)
 {
-    GstBusPtr busPtr(gst_element_get_bus(tee));
-    if(!busPtr)
+    g_autoptr(GstBus) bus = gst_element_get_bus(tee);
+    if(!bus)
         return;
 
     GstStructure* structure =
@@ -261,7 +261,7 @@ void GstStreamingSource::postTeePadRemoved(GstElement* tee)
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(tee), structure);
 
-    gst_bus_post(busPtr.get(), message);
+    gst_bus_post(bus, message);
 }
 
 // can be called from streaming thread
@@ -368,8 +368,8 @@ std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
 
 void GstStreamingSource::destroyPeer(MessageProxy* messageProxy)
 {
-    GstBusPtr busPtr(gst_element_get_bus(pipeline()));
-    if(!busPtr)
+    g_autoptr(GstBus) bus = gst_element_get_bus(pipeline());
+    if(!bus)
         return;
 
     GstStructure* structure =
@@ -386,7 +386,7 @@ void GstStreamingSource::destroyPeer(MessageProxy* messageProxy)
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(pipeline()), structure);
 
-    gst_bus_post(busPtr.get(), message);
+    gst_bus_post(bus, message);
 }
 
 void GstStreamingSource::destroyPeers() noexcept

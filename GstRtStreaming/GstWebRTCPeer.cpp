@@ -150,8 +150,8 @@ void GstWebRTCPeer::postIceCandidate(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
-    gst_bus_post(busPtr.get(), message);
+    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    gst_bus_post(bus, message);
 }
 
 // will be called from streaming thread
@@ -174,8 +174,8 @@ void GstWebRTCPeer::postSdp(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
-    gst_bus_post(busPtr.get(), message);
+    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    gst_bus_post(bus, message);
 }
 
 // will be called from streaming thread
@@ -192,8 +192,8 @@ void GstWebRTCPeer::postEos(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
-    gst_bus_post(busPtr.get(), message);
+    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    gst_bus_post(bus, message);
 }
 
 void GstWebRTCPeer::setPipeline(GstElementPtr&& pipelinePtr) noexcept

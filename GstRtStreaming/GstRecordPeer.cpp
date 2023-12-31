@@ -88,8 +88,8 @@ void GstRecordPeer::postIceCandidate(
     guint mlineIndex,
     const gchar* candidate)
 {
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
-    if(!busPtr)
+    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    if(!bus)
         return;
 
     GValue candidateValue = G_VALUE_INIT;
@@ -115,7 +115,7 @@ void GstRecordPeer::postIceCandidate(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    gst_bus_post(busPtr.get(), message);
+    gst_bus_post(bus, message);
 }
 
 // will be called from streaming thread
@@ -124,8 +124,8 @@ void GstRecordPeer::postSdp(
     GstElement* rtcbin,
     const gchar* sdp)
 {
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
-    if(!busPtr)
+    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    if(!bus)
         return;
 
     GValue sdpValue = G_VALUE_INIT;
@@ -148,7 +148,7 @@ void GstRecordPeer::postSdp(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    gst_bus_post(busPtr.get(), message);
+    gst_bus_post(bus, message);
 }
 
 // will be called from streaming thread
@@ -157,8 +157,8 @@ void GstRecordPeer::postEos(
     GstElement* rtcbin,
     gboolean error)
 {
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
-    if(!busPtr)
+    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    if(!bus)
         return;
 
     GstStructure* structure =
@@ -175,7 +175,7 @@ void GstRecordPeer::postEos(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    gst_bus_post(busPtr.get(), message);
+    gst_bus_post(bus, message);
 }
 
 namespace {

@@ -167,8 +167,8 @@ void GstWebRTCPeer2::postIceCandidate(
     guint mlineIndex,
     const gchar* candidate)
 {
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
-    if(!busPtr)
+    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    if(!bus)
         return;
 
     GValue candidateValue = G_VALUE_INIT;
@@ -194,7 +194,7 @@ void GstWebRTCPeer2::postIceCandidate(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    gst_bus_post(busPtr.get(), message);
+    gst_bus_post(bus, message);
 }
 
 // will be called from streaming thread
@@ -203,8 +203,8 @@ void GstWebRTCPeer2::postSdp(
     GstElement* rtcbin,
     const gchar* sdp)
 {
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
-    if(!busPtr)
+    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    if(!bus)
         return;
 
     GValue sdpValue = G_VALUE_INIT;
@@ -227,7 +227,7 @@ void GstWebRTCPeer2::postSdp(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    gst_bus_post(busPtr.get(), message);
+    gst_bus_post(bus, message);
 }
 
 // will be called from streaming thread
@@ -236,8 +236,8 @@ void GstWebRTCPeer2::postEos(
     GstElement* rtcbin,
     gboolean error)
 {
-    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
-    if(!busPtr)
+    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    if(!bus)
         return;
 
     GstStructure* structure =
@@ -254,7 +254,7 @@ void GstWebRTCPeer2::postEos(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    gst_bus_post(busPtr.get(), message);
+    gst_bus_post(bus, message);
 }
 
 GstElement* GstWebRTCPeer2::tee() const noexcept
