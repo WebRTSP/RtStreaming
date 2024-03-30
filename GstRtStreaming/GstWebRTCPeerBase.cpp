@@ -19,6 +19,7 @@ const bool GstWebRTCPeerBase::MDNSResolveRequired = GstRtStreaming::IsMDNSResolv
 const bool GstWebRTCPeerBase::EndOfCandidatesSupported = GstRtStreaming::IsEndOfCandidatesSupported();
 const bool GstWebRTCPeerBase::AddTurnServerSupported = GstRtStreaming::IsAddTurnServerSupported();
 const bool GstWebRTCPeerBase::IceGatheringStateBroken = GstRtStreaming::IsIceGatheringStateBroken();
+const bool GstWebRTCPeerBase::IsIceAgentAvailable = GstRtStreaming::IsIceAgentAvailable();
 
 void GstWebRTCPeerBase::attachClient(
     const PreparedCallback& prepared,
@@ -161,7 +162,7 @@ void GstWebRTCPeerBase::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
         "notify::ice-connection-state",
         G_CALLBACK(onIceConnectionStateChangedCallback), nullptr);
 
-    if(GstRtStreaming::IsIceAgentAvailable()) {
+    if(IsIceAgentAvailable) {
         GstObject* iceAgent = nullptr;
         g_object_get(rtcbin, "ice-agent", &iceAgent, NULL);
         if(iceAgent) {

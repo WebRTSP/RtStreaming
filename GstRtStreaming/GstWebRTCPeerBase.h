@@ -21,6 +21,7 @@ protected:
     static const bool EndOfCandidatesSupported;
     static const bool AddTurnServerSupported;
     static const bool IceGatheringStateBroken;
+    static const bool IsIceAgentAvailable;
 
     const std::shared_ptr<spdlog::logger>& log()
         { return _log; }
