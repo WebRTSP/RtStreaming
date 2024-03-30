@@ -9,6 +9,9 @@ struct WebRTCConfig
 {
     typedef std::vector<std::string> IceServers;
     IceServers iceServers;
+
+    std::optional<uint16_t> minRtpPort;
+    std::optional<uint16_t> maxRtpPort;
 };
 
 typedef std::shared_ptr<const WebRTCConfig> WebRTCConfigPtr;

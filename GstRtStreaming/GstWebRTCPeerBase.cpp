@@ -19,6 +19,7 @@ const bool GstWebRTCPeerBase::MDNSResolveRequired = GstRtStreaming::IsMDNSResolv
 const bool GstWebRTCPeerBase::EndOfCandidatesSupported = GstRtStreaming::IsEndOfCandidatesSupported();
 const bool GstWebRTCPeerBase::AddTurnServerSupported = GstRtStreaming::IsAddTurnServerSupported();
 const bool GstWebRTCPeerBase::IceGatheringStateBroken = GstRtStreaming::IsIceGatheringStateBroken();
+const bool GstWebRTCPeerBase::IsMinMaxRtpPortAvailable = GstRtStreaming::IsMinMaxRtpPortAvailable();
 const bool GstWebRTCPeerBase::IsIceAgentAvailable = GstRtStreaming::IsIceAgentAvailable();
 
 void GstWebRTCPeerBase::attachClient(
@@ -166,6 +167,13 @@ void GstWebRTCPeerBase::setWebRtcBin(
         g_object_get(rtcbin, "ice-agent", &iceAgent, NULL);
         if(iceAgent) {
             GstObjectPtr iceAgentPtr(iceAgent);
+
+            if(IsMinMaxRtpPortAvailable) {
+                if(webRTCConfig.minRtpPort)
+                    g_object_set(iceAgent, "min-rtp-port", webRTCConfig.minRtpPort.value(), nullptr);
+                if(webRTCConfig.maxRtpPort)
+                    g_object_set(iceAgent, "max-rtp-port", webRTCConfig.maxRtpPort.value(), nullptr);
+            }
 
             NiceAgent* niceAgent = nullptr;
             g_object_get(iceAgent, "agent", &niceAgent, NULL);
