@@ -216,13 +216,15 @@ void GstWebRTCPeer::setPipeline(GstElementPtr&& pipelinePtr) noexcept
     gst_bus_add_watch(busPtr.get(), onBusMessageCallback, this);
 }
 
-void GstWebRTCPeer::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
+void GstWebRTCPeer::setWebRtcBin(
+    const WebRTCConfig& webRTCConfig,
+    GstElementPtr&& rtcbinPtr) noexcept
 {
     assert(rtcbinPtr && !webRtcBin());
     if(!rtcbinPtr || webRtcBin())
         return;
 
-   GstWebRTCPeerBase::setWebRtcBin(std::move(rtcbinPtr));
+   GstWebRTCPeerBase::setWebRtcBin(webRTCConfig, std::move(rtcbinPtr));
 
     GstElement* rtcbin = webRtcBin();
 
@@ -430,7 +432,7 @@ void GstWebRTCPeer::setRemoteSdp(const std::string& sdp) noexcept
 }
 
 void GstWebRTCPeer::prepare(
-    const IceServers& iceServers,
+    const WebRTCConfigPtr& webRTCConfig,
     const PreparedCallback& prepared,
     const IceCandidateCallback& iceCandidate,
     const EosCallback& eos) noexcept
@@ -439,10 +441,9 @@ void GstWebRTCPeer::prepare(
     if(pipeline())
         return;
 
-    GstWebRTCPeerBase::setIceServers(iceServers);
     GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos);
 
-    prepare();
+    prepare(webRTCConfig);
 
     if(!pipeline())
         onEos(true);

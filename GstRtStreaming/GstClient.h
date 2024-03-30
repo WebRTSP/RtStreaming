@@ -14,5 +14,5 @@ public:
     GstClient() : GstWebRTCPeer(Role::Viewer) {}
 
 protected:
-    void prepare() noexcept override;
+    void prepare(const WebRTCConfigPtr&) noexcept override;
 };

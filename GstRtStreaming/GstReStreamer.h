@@ -12,7 +12,7 @@ public:
     ~GstReStreamer();
 
 protected:
-    void prepare() noexcept override;
+    void prepare(const WebRTCConfigPtr&) noexcept override;
 
 private:
     void srcPadAdded(GstElement* decodebin, GstPad*);
@@ -25,6 +25,8 @@ private:
     PreparedCallback _preparedCallback;
     IceCandidateCallback _iceCandidateCallback;
     EosCallback _eosCallback;
+
+    WebRTCConfigPtr _webRTCConfig;
 
     GstCapsPtr _h264CapsPtr;
     GstCapsPtr _vp8CapsPtr;

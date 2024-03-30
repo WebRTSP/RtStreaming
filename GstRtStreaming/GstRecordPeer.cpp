@@ -20,10 +20,10 @@ GstRecordPeer::GstRecordPeer(
     MessageProxy* messageProxy,
     GstElement* pipeline,
     GstElement* rtcbin) :
-    _messageProxy(_MESSAGE_PROXY(g_object_ref(messageProxy)))
+    _messageProxy(_MESSAGE_PROXY(g_object_ref(messageProxy))),
+    _rtcbinPtr(GstElementPtr(GST_ELEMENT(gst_object_ref(rtcbin))))
 {
     setPipeline(pipeline);
-    setWebRtcBin(rtcbin);
 
     auto onMessageCallback =
         (void (*) (MessageProxy*, GstMessage*, gpointer))
@@ -358,12 +358,12 @@ void GstRecordPeer::internalPrepare() noexcept
 }
 
 void GstRecordPeer::prepare(
-    const IceServers& iceServers,
+    const WebRTCConfigPtr& webRTCConfig,
     const PreparedCallback& prepared,
     const IceCandidateCallback& iceCandidate,
     const EosCallback& eos) noexcept
 {
-    GstWebRTCPeerBase::setIceServers(iceServers);
+    setWebRtcBin(*webRTCConfig, std::move(_rtcbinPtr));
     GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos);
 
     assert(pipeline());

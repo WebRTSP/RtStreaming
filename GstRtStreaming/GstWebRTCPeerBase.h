@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <deque>
+#include <optional>
 
 #include "CxxPtr/GstPtr.h"
 
@@ -32,14 +33,12 @@ protected:
         const EosCallback&) noexcept;
     bool clientAttached() const noexcept;
 
-    void setIceServers(const IceServers&) noexcept;
-
     void setPipeline(GstElement*) noexcept;
     virtual void setPipeline(GstElementPtr&&) noexcept;
     GstElement* pipeline() const noexcept;
 
-    void setWebRtcBin(GstElement*) noexcept;
-    virtual void setWebRtcBin(GstElementPtr&&) noexcept;
+    void setWebRtcBin(const WebRTCConfig&, GstElement*) noexcept;
+    virtual void setWebRtcBin(const WebRTCConfig&, GstElementPtr&&) noexcept;
     GstElement* webRtcBin() const noexcept;
 
     static void onConnectionStateChanged(GstElement* rtcbin);
@@ -59,7 +58,7 @@ protected:
     void onEos(bool /*error*/);
 
 private:
-    void setIceServers();
+    void setIceServers(const WebRTCConfig&);
 
 private:
     const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
@@ -70,7 +69,6 @@ private:
     IceCandidateCallback _iceCandidateCallback;
     EosCallback _eosCallback;
 
-    std::deque<std::string> _iceServers;
     GstElementPtr _pipelinePtr;
     GstElementPtr _rtcbinPtr;
 

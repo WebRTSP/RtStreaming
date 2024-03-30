@@ -21,7 +21,7 @@ GstTestStreamer::GstTestStreamer(
 {
 }
 
-void GstTestStreamer::prepare() noexcept
+void GstTestStreamer::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
 {
     std::string usePattern = "smpte";
     if(_pattern == "bars")
@@ -65,7 +65,7 @@ void GstTestStreamer::prepare() noexcept
         gst_bin_get_by_name(GST_BIN(pipeline), "srcrtcbin"));
 
     setPipeline(std::move(pipelinePtr));
-    setWebRtcBin(std::move(rtcbinPtr));
+    setWebRtcBin(*webRTCConfig, std::move(rtcbinPtr));
 
     pause();
 }

@@ -3,19 +3,21 @@
 #include <string>
 #include <functional>
 #include <deque>
+#include <memory>
+
+#include "WebRTCConfig.h"
 
 
 struct WebRTCPeer
 {
     virtual ~WebRTCPeer() {}
 
-    typedef std::deque<std::string> IceServers;
     typedef std::function<void ()> PreparedCallback;
     typedef std::function<
         void (unsigned mlineIndex, const std::string& candidate)> IceCandidateCallback;
     typedef std::function<void ()> EosCallback;
     virtual void prepare(
-        const IceServers&,
+        const WebRTCConfigPtr&, // FIXME? is it too expensive to use std::shared_ptr here?
         const PreparedCallback&,
         const IceCandidateCallback&,
         const EosCallback&) noexcept = 0;

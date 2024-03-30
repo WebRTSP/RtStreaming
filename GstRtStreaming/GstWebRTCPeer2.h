@@ -16,7 +16,7 @@ public:
     ~GstWebRTCPeer2();
 
     void prepare(
-        const IceServers&,
+        const WebRTCConfigPtr&,
         const PreparedCallback&,
         const IceCandidateCallback&,
         const EosCallback&) noexcept override;
@@ -80,6 +80,8 @@ private:
     gulong _teeHandlerId = 0;
     gulong _messageHandlerId = 0;
     gulong _eosHandlerId = 0;
+
+    WebRTCConfigPtr _webRTCConfig;
 
     GstElementPtr _teePtr;
     GstElementPtr _queuePtr;

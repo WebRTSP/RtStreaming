@@ -25,11 +25,13 @@ GstReStreamer::~GstReStreamer()
 {
 }
 
-void GstReStreamer::prepare() noexcept
+void GstReStreamer::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
 {
     assert(!pipeline());
     if(pipeline())
         return;
+
+    _webRTCConfig = webRTCConfig;
 
     _h264CapsPtr.reset(gst_caps_from_string("video/x-h264"));
     _vp8CapsPtr.reset(gst_caps_from_string("video/x-vp8"));
@@ -158,7 +160,7 @@ void GstReStreamer::srcPadAdded(
             gst_object_unref(element);
         });
 
-    setWebRtcBin(GstElementPtr(gst_bin_get_by_name(GST_BIN(pipeline), "srcrtcbin")));
+    setWebRtcBin(*_webRTCConfig, GstElementPtr(gst_bin_get_by_name(GST_BIN(pipeline), "srcrtcbin")));
 }
 
 void GstReStreamer::noMorePads(GstElement* /*decodebin*/)

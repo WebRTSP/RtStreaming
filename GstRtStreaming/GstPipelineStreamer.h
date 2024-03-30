@@ -10,7 +10,7 @@ public:
     GstPipelineStreamer(const std::string& pipeline);
 
 protected:
-    void prepare() noexcept override;
+    void prepare(const WebRTCConfigPtr&) noexcept override;
 
 private:
     const std::string _pipeline;

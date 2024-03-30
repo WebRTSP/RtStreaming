@@ -14,7 +14,7 @@
 #include "LibGst.h"
 
 
-void GstClient::prepare() noexcept
+void GstClient::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
 {
     GstElementPtr pipelinePtr(gst_pipeline_new("Client Pipeline"));
     GstElement* pipeline = pipelinePtr.get();
@@ -63,7 +63,7 @@ void GstClient::prepare() noexcept
         G_CALLBACK(onPadAddedCallback), pipeline);
 
     setPipeline(std::move(pipelinePtr));
-    setWebRtcBin(std::move(rtcbinPtr));
+    setWebRtcBin(*webRTCConfig, std::move(rtcbinPtr));
 
     pause();
 }

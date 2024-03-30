@@ -19,7 +19,7 @@ public:
     ~GstRecordPeer();
 
     void prepare(
-        const IceServers&,
+        const WebRTCConfigPtr&,
         const PreparedCallback&,
         const IceCandidateCallback&,
         const EosCallback&) noexcept override;
@@ -73,4 +73,6 @@ private:
 
     gulong _iceGatheringStateHandlerId = 0;
     gulong _iceCandidateHandlerId = 0;
+
+    GstElementPtr _rtcbinPtr;
 };

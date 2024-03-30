@@ -43,11 +43,6 @@ bool GstWebRTCPeerBase::clientAttached() const noexcept
     return _clientAttached;
 }
 
-void GstWebRTCPeerBase::setIceServers(const IceServers& iceServers) noexcept
-{
-    _iceServers = iceServers;
-}
-
 void GstWebRTCPeerBase::setPipeline(GstElement* pipeline) noexcept
 {
     setPipeline(GstElementPtr(GST_ELEMENT(gst_object_ref(pipeline))));
@@ -68,9 +63,11 @@ GstElement* GstWebRTCPeerBase::pipeline() const noexcept
     return _pipelinePtr.get();
 }
 
-void GstWebRTCPeerBase::setWebRtcBin(GstElement* rtcbin) noexcept
+void GstWebRTCPeerBase::setWebRtcBin(
+    const WebRTCConfig& webRTCConfig,
+    GstElement* rtcbin) noexcept
 {
-    setWebRtcBin(GstElementPtr(GST_ELEMENT(gst_object_ref(rtcbin))));
+    setWebRtcBin(webRTCConfig, GstElementPtr(GST_ELEMENT(gst_object_ref(rtcbin))));
 }
 
 namespace {
@@ -122,7 +119,9 @@ std::string NiceCandidateToString(const NiceCandidate& candidate)
 
 }
 
-void GstWebRTCPeerBase::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
+void GstWebRTCPeerBase::setWebRtcBin(
+    const WebRTCConfig& webRTCConfig,
+    GstElementPtr&& rtcbinPtr) noexcept
 {
     assert(rtcbinPtr && !_rtcbinPtr);
 
@@ -131,7 +130,7 @@ void GstWebRTCPeerBase::setWebRtcBin(GstElementPtr&& rtcbinPtr) noexcept
 
     _rtcbinPtr = std::move(rtcbinPtr);
 
-    setIceServers();
+    setIceServers(webRTCConfig);
 
     GstElement* rtcbin = webRtcBin();
 
@@ -244,11 +243,11 @@ void GstWebRTCPeerBase::postLog(
     GstPipelineOwner::PostLog(element, level, logMessage);
 }
 
-void GstWebRTCPeerBase::setIceServers()
+void GstWebRTCPeerBase::setIceServers(const WebRTCConfig& webRTCConfig)
 {
     GstElement* rtcbin = webRtcBin();
 
-    for(const std::string& iceServer: _iceServers) {
+    for(const std::string& iceServer: webRTCConfig.iceServers) {
         using namespace GstRtStreaming;
         switch(ParseIceServerType(iceServer)) {
             case IceServerType::Stun:

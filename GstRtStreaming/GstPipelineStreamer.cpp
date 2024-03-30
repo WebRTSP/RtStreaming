@@ -20,7 +20,7 @@ GstPipelineStreamer::GstPipelineStreamer(const std::string& pipeline) :
 {
 }
 
-void GstPipelineStreamer::prepare() noexcept
+void GstPipelineStreamer::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
 {
     GError* parseError = nullptr;
     GstElementPtr pipelinePtr(gst_parse_launch(_pipeline.c_str(), &parseError));
@@ -49,7 +49,7 @@ void GstPipelineStreamer::prepare() noexcept
     gst_iterator_free(it);
 
     setPipeline(std::move(pipelinePtr));
-    setWebRtcBin(std::move(rtcbinPtr));
+    setWebRtcBin(*webRTCConfig, std::move(rtcbinPtr));
 
     pause();
 }

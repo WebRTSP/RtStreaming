@@ -11,7 +11,7 @@ class GstWebRTCPeer : public GstWebRTCPeerBase
 {
 public:
     void prepare(
-        const IceServers&,
+        const WebRTCConfigPtr&,
         const PreparedCallback&,
         const IceCandidateCallback&,
         const EosCallback&) noexcept override;
@@ -28,14 +28,14 @@ protected:
     ~GstWebRTCPeer();
 
     void setPipeline(GstElementPtr&&) noexcept override;
-    void setWebRtcBin(GstElementPtr&&) noexcept override;
+    void setWebRtcBin(const WebRTCConfig&, GstElementPtr&&) noexcept override;
 
     void setState(GstState) noexcept;
     void pause() noexcept;
     void play() noexcept;
     void stop() noexcept;
 
-    virtual void prepare() noexcept = 0;
+    virtual void prepare(const WebRTCConfigPtr&) noexcept = 0;
 
 private:
     gboolean onBusMessage(GstMessage*);

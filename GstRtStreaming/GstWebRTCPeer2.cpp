@@ -609,7 +609,7 @@ void GstWebRTCPeer2::internalPrepare() noexcept
     g_object_set(queue, "silent", true, nullptr);
     gst_util_set_object_arg(G_OBJECT(queue), "leaky", "downstream");
 
-    setWebRtcBin(GstElementPtr(gst_element_factory_make("webrtcbin", nullptr)));
+    setWebRtcBin(*_webRTCConfig, GstElementPtr(gst_element_factory_make("webrtcbin", nullptr)));
     GstElement* rtcbin = webRtcBin();
     prepareWebRtcBin();
 
@@ -673,12 +673,13 @@ void GstWebRTCPeer2::internalPrepare() noexcept
 }
 
 void GstWebRTCPeer2::prepare(
-    const IceServers& iceServers,
+    const WebRTCConfigPtr& webRTCConfig,
     const PreparedCallback& prepared,
     const IceCandidateCallback& iceCandidate,
     const EosCallback& eos) noexcept
 {
-    GstWebRTCPeerBase::setIceServers(iceServers);
+    _webRTCConfig = webRTCConfig;
+
     GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos);
 
     internalPrepare();
