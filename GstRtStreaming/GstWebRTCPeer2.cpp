@@ -301,18 +301,6 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
         };
     g_signal_connect_object(rtcbin, "on-ice-candidate",
         G_CALLBACK(onIceCandidateCallback), _messageProxy, GConnectFlags());
-
-    GArray* transceivers;
-    g_signal_emit_by_name(rtcbin, "get-transceivers", &transceivers);
-    for(guint i = 0; i < transceivers->len; ++i) {
-        GstWebRTCRTPTransceiver* transceiver = g_array_index(transceivers, GstWebRTCRTPTransceiver*, 0);
-#if GST_CHECK_VERSION(1, 18, 0)
-        g_object_set(transceiver, "direction", GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY, nullptr);
-#else
-        transceiver->direction = GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
-#endif
-    }
-    g_array_unref(transceivers);
 }
 
 // will be called from streaming thread
@@ -644,6 +632,7 @@ void GstWebRTCPeer2::internalPrepare() noexcept
                 GST_ELEMENT(gst_object_ref(rtcbin)),
                 nullptr);
 
+
             GstPadPtr teeSrcPadPtr(gst_element_get_request_pad(tee, "src_%u"));
             GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(queue, "sink"));
 
@@ -665,6 +654,18 @@ void GstWebRTCPeer2::internalPrepare() noexcept
             if(!gst_element_sync_state_with_parent(rtcbin)) {
                 g_assert(false);
             }
+
+            GArray* transceivers;
+            g_signal_emit_by_name(rtcbin, "get-transceivers", &transceivers);
+            for(guint i = 0; i < transceivers->len; ++i) {
+                GstWebRTCRTPTransceiver* transceiver = g_array_index(transceivers, GstWebRTCRTPTransceiver*, 0);
+#if GST_CHECK_VERSION(1, 18, 0)
+                g_object_set(transceiver, "direction", GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY, nullptr);
+#else
+                transceiver->direction = GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+#endif
+            }
+            g_array_unref(transceivers);
 
             return GST_PAD_PROBE_REMOVE;
         },
