@@ -51,5 +51,8 @@ void GstPipelineStreamer::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
     setPipeline(std::move(pipelinePtr));
     setWebRtcBin(*webRTCConfig, std::move(rtcbinPtr));
 
-    pause();
+    if(clientAttached())
+        play();
+    else
+        pause();
 }
