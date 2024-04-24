@@ -2,9 +2,13 @@ cmake_minimum_required(VERSION 3.0)
 
 project(RtStreaming)
 
+option(ONVIF_SUPPORT "ONVIF support" ON)
+
 add_subdirectory(deps/CxxPtr)
-add_subdirectory(deps/ONVIF)
 add_subdirectory(GstRtStreaming)
+if(ONVIF_SUPPORT)
+    add_subdirectory(deps/ONVIF)
+endif()
 
 file(GLOB SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     *.cpp

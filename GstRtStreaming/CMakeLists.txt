@@ -17,7 +17,13 @@ file(GLOB SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     *.h
     *.cmake)
 
-add_library(${PROJECT_NAME} ${SOURCES})
+if(ONVIF_SUPPORT)
+    file(GLOB ONVIF_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+        *.cpp
+        *.h)
+endif()
+
+add_library(${PROJECT_NAME} ${SOURCES} ${ONVIF_SOURCES})
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 target_compile_definitions(${PROJECT_NAME} PUBLIC -DGST_USE_UNSTABLE_API)
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -38,5 +44,8 @@ target_link_libraries(${PROJECT_NAME}
     ${GSTREAMER_PBUTILS_LDFLAGS}
     ${SPDLOG_LDFLAGS}
     ${NICE_LDFLAGS}
-    CxxPtr
-    ONVIF)
+    CxxPtr)
+
+if(ONVIF_SUPPORT)
+    target_link_libraries(${PROJECT_NAME} ONVIF)
+endif()
