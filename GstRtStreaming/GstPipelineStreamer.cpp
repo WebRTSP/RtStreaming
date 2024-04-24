@@ -28,8 +28,10 @@ void GstPipelineStreamer::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
     GError* parseError = nullptr;
     GstElementPtr pipelinePtr(gst_parse_launch(_pipeline.c_str(), &parseError));
     GErrorPtr parseErrorPtr(parseError);
-    if(parseError)
+    if(parseError) {
+        Log()->error("Failed to parse pipeline: {}", parseError->message);
         return;
+    }
 
     GstElement* pipeline = pipelinePtr.get();
 
