@@ -12,7 +12,10 @@
 
 #include "LibGst.h"
 #include "Helpers.h"
+#include "Log.h"
 
+
+static const auto Log = GstRtStreamingLog;
 
 GstPipelineStreamer::GstPipelineStreamer(const std::string& pipeline) :
     GstWebRTCPeer(Role::Streamer),
@@ -47,6 +50,11 @@ void GstPipelineStreamer::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
         }
     }
     gst_iterator_free(it);
+
+    if(!rtcbinPtr) {
+        Log()->error("\"webrtcbin\" element not found in pipeline");
+        return;
+    }
 
     setPipeline(std::move(pipelinePtr));
     setWebRtcBin(*webRTCConfig, std::move(rtcbinPtr));
