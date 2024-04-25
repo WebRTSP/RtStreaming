@@ -216,7 +216,7 @@ void GstWebRTCPeerBase::onIceCandidate(
     const gchar* candidate)
 {
     if(_iceCandidateCallback) {
-        if(!candidate)
+        if(!candidate || candidate[0] == '\0')
             _iceCandidateCallback(mlineIndex, "a=end-of-candidates");
         else
             _iceCandidateCallback(mlineIndex, std::string("a=") + candidate);
