@@ -21,6 +21,9 @@ GstPipelineStreamer2::GstPipelineStreamer2(const std::string& sourcePipelineDesc
 
 bool GstPipelineStreamer2::prepare() noexcept
 {
+    if(pipeline())
+        return true; // already prepared
+
     GstElementPtr pipelinePtr(gst_pipeline_new(nullptr));
     GstElement* pipeline = pipelinePtr.get();
 
