@@ -19,8 +19,8 @@ file(GLOB SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 
 if(ONVIF_SUPPORT)
     file(GLOB ONVIF_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-        *.cpp
-        *.h)
+        ONVIF/*.cpp
+        ONVIF/*.h)
 endif()
 
 add_library(${PROJECT_NAME} ${SOURCES} ${ONVIF_SOURCES})

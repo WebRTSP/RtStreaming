@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include "GstReStreamer2.h"
+#include "../GstReStreamer2.h"
 
 
 class ONVIFReStreamer : public GstReStreamer2
