@@ -17,17 +17,60 @@
 static const auto Log = GstRtStreamingLog;
 
 GstV4L2Streamer::GstV4L2Streamer(
+    const std::optional<std::string>& edidFilePath,
     const std::optional<VideoResolution>& resolution,
     const std::optional<std::string>& h264Level,
     bool useHwEncoder) :
+    _edidFilePath(edidFilePath),
     _resolution(resolution),
     _h264Level(h264Level),
     _useHwEncoder(useHwEncoder)
 {
 }
 
+bool GstV4L2Streamer::setEdid()
+{
+    if(!_edidFilePath) return true;
+
+    Log()->info("Setting EDID with \"v4l2-ctl\" from \"{}\"...", *_edidFilePath);
+
+    const std::string filePrefix = "--set-edid=file=";
+    std::string edidArg = filePrefix + *_edidFilePath;
+
+    const gchar* argv[] = { "v4l2-ctl", edidArg.c_str(), "--fix-edid-checksums", nullptr };
+    gint waitStatus;
+    GError* error = nullptr;
+    GSpawnFlags flags = GSpawnFlags(
+        G_SPAWN_SEARCH_PATH | G_SPAWN_FILE_AND_ARGV_ZERO |
+        G_SPAWN_CHILD_INHERITS_STDOUT | G_SPAWN_CHILD_INHERITS_STDERR |
+        G_SPAWN_STDIN_FROM_DEV_NULL);
+    if(!g_spawn_sync(
+        nullptr,
+        const_cast<gchar**>(argv),
+        nullptr,
+        flags,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        &waitStatus,
+        &error) ||
+        !g_spawn_check_wait_status(waitStatus, &error))
+    {
+        Log()->error("Failed to launch v4l2-ctl: {}", error->message);
+        g_error_free(error);
+        return false;
+    }
+
+    Log()->info("EDID successfully set");
+
+    return true;
+}
+
 bool GstV4L2Streamer::prepare() noexcept
 {
+    if(!setEdid()) return false;
+
     const char* pipelineDesc;
     if(_useHwEncoder) {
         pipelineDesc =
