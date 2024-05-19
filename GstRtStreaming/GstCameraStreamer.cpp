@@ -17,8 +17,8 @@
 static const auto Log = GstRtStreamingLog;
 
 GstCameraStreamer::GstCameraStreamer(
-    std::optional<VideoResolution> resolution,
-    std::optional<std::string> h264Level,
+    const std::optional<VideoResolution>& resolution,
+    const std::optional<std::string>& h264Level,
     bool useHwEncoder) :
     _resolution(resolution),
     _h264Level(h264Level),
