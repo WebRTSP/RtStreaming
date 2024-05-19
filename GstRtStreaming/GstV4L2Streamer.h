@@ -13,8 +13,8 @@ public:
     };
 
     GstV4L2Streamer(
-        std::optional<VideoResolution> resolution = std::optional<VideoResolution>(),
-        std::optional<std::string> h264Level = std::optional<std::string>(),
+        const std::optional<VideoResolution>& resolution = std::optional<VideoResolution>(),
+        const std::optional<std::string>& h264Level = std::optional<const std::string>(),
         bool useHwEncoder = true);
 
 protected:
