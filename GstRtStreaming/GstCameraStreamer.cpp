@@ -18,9 +18,11 @@ static const auto Log = GstRtStreamingLog;
 
 GstCameraStreamer::GstCameraStreamer(
     const std::optional<VideoResolution>& resolution,
+    const std::optional<unsigned>& framerate,
     const std::optional<std::string>& h264Level,
     bool useHwEncoder) :
     _resolution(resolution),
+    _framerate(framerate),
     _h264Level(h264Level),
     _useHwEncoder(useHwEncoder)
 {
@@ -57,19 +59,17 @@ bool GstCameraStreamer::prepare() noexcept
     GstElementPtr teePtr(gst_bin_get_by_name(GST_BIN(pipeline), "tee"));
 
     GstElementPtr cameraFilterPtr(gst_bin_get_by_name(GST_BIN(pipeline), "cameraFilter"));
+    std::string cameraCaps =
+        "video/x-raw,"
+        "interlace-mode=(string)progressive";
     if(_resolution) {
-        const std::string caps =
-            "video/x-raw,"
-            "interlace-mode=(string)progressive,"
-            "width=" + std::to_string(_resolution->width) + ","
-            "height=" + std::to_string(_resolution->height);
-        gst_util_set_object_arg(G_OBJECT(cameraFilterPtr.get()), "caps", caps.c_str());
-    } else {
-        gst_util_set_object_arg(
-            G_OBJECT(cameraFilterPtr.get()),
-            "caps",
-            "video/x-raw, interlace-mode=(string)progressive");
+        cameraCaps += ",width=" + std::to_string(_resolution->width);
+        cameraCaps += ",height=" + std::to_string(_resolution->height);
     }
+    if(_framerate) {
+        cameraCaps += ",framerate=" + std::to_string(*_framerate) + "/1";
+    }
+    gst_util_set_object_arg(G_OBJECT(cameraFilterPtr.get()), "caps", cameraCaps.c_str());
 
     GstElementPtr encoderFilterPtr(gst_bin_get_by_name(GST_BIN(pipeline), "encoderFilter"));
     if(_h264Level) {

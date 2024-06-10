@@ -14,6 +14,7 @@ public:
 
     GstCameraStreamer(
         const std::optional<VideoResolution>& resolution = std::optional<VideoResolution>(),
+        const std::optional<unsigned>& framerate = std::optional<unsigned>(),
         const std::optional<std::string>& h264Level = std::optional<std::string>(),
         bool useHwEncoder = true);
 
@@ -22,6 +23,7 @@ protected:
 
 private:
     const std::optional<VideoResolution> _resolution;
+    const std::optional<unsigned> _framerate;
     const std::optional<std::string> _h264Level;
     const bool _useHwEncoder;
 };
