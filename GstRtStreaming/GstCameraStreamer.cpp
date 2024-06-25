@@ -30,6 +30,9 @@ GstCameraStreamer::GstCameraStreamer(
 
 bool GstCameraStreamer::prepare() noexcept
 {
+    if(pipeline())
+        return true; // already prepared
+
     const char* pipelineDesc;
     if(_useHwEncoder) {
         pipelineDesc =
