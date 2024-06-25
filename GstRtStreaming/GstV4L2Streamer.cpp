@@ -66,6 +66,9 @@ bool GstV4L2Streamer::setEdid()
 
 bool GstV4L2Streamer::prepare() noexcept
 {
+    if(pipeline())
+        return true; // already prepared
+
     if(!setEdid()) return false;
 
     const char* pipelineDesc;
