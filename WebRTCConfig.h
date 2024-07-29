@@ -12,6 +12,8 @@ struct WebRTCConfig
 
     std::optional<uint16_t> minRtpPort;
     std::optional<uint16_t> maxRtpPort;
+
+    bool useRelayTransport = false;
 };
 
 typedef std::shared_ptr<const WebRTCConfig> WebRTCConfigPtr;

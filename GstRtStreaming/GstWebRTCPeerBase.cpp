@@ -284,6 +284,9 @@ void GstWebRTCPeerBase::setIceServers(const WebRTCConfig& webRTCConfig)
                 break;
         }
     }
+
+    if(webRTCConfig.useRelayTransport)
+        gst_util_set_object_arg(G_OBJECT(rtcbin), "ice-transport-policy", "relay");
 }
 
 // will be called from streaming thread
