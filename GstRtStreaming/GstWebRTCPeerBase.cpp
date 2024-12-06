@@ -135,6 +135,8 @@ void GstWebRTCPeerBase::setWebRtcBin(
 
     GstElement* rtcbin = webRtcBin();
 
+    g_object_set(rtcbin, "bundle-policy", GST_WEBRTC_BUNDLE_POLICY_MAX_COMPAT, nullptr);
+
     auto onConnectionStateChangedCallback =
         (void (*) (GstElement*, GParamSpec* , gpointer))
         [] (GstElement* rtcbin, GParamSpec*, gpointer) {
