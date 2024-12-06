@@ -256,11 +256,11 @@ void GstWebRTCPeer::setWebRtcBin(
 
     auto onIceCandidateCallback =
         (void (*) (GstElement*, guint, gchar*, gpointer))
-        [] (GstElement* rtcbin, guint candidate, gchar* arg2, gpointer userData)
+        [] (GstElement* rtcbin, guint mlineIndex, gchar* candidate, gpointer userData)
         {
             GstWebRTCPeer* self = static_cast<GstWebRTCPeer*>(userData);
             assert(rtcbin == self->webRtcBin());
-            postIceCandidate(rtcbin, candidate, arg2);
+            postIceCandidate(rtcbin, mlineIndex, candidate);
         };
     g_signal_connect(rtcbin, "on-ice-candidate",
         G_CALLBACK(onIceCandidateCallback), this);
