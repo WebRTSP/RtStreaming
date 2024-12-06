@@ -193,7 +193,8 @@ void GstWebRTCPeerBase::setWebRtcBin(
                         postLog(
                             rtcbin, spdlog::level::debug,
                             fmt::format(
-                                "[GstWebRTCPeerBase] Selected ICE Pair: Local \"{}\" - Remote \"{}\"",
+                                "[GstWebRTCPeerBase] Selected ICE Pair ({}/{}): Local \"{}\" - Remote \"{}\"",
+                                streamId, componentId,
                                 NiceCandidateToString(*localCandidate),
                                 NiceCandidateToString(*remoteCandidate)));
                     };
