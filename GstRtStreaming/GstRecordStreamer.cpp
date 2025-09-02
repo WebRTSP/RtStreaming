@@ -34,7 +34,7 @@ GstElement* GstRecordStreamer::webRtcBin() const noexcept
 bool GstRecordStreamer::prepare() noexcept
 {
     // only record peer can prepare
-    return true;
+    return pipeline() ? true : false;
 }
 
 void GstRecordStreamer::recordPrepare() noexcept
