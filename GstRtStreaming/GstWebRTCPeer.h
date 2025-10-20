@@ -32,8 +32,8 @@ protected:
 
     void setState(GstState) noexcept;
     void pause() noexcept;
-    void play() noexcept;
-    void stop() noexcept;
+    void play() noexcept override;
+    void stop() noexcept override;
 
     virtual void prepare(const WebRTCConfigPtr&) noexcept = 0;
 

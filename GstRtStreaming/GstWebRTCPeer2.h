@@ -33,8 +33,8 @@ private:
     const std::shared_ptr<spdlog::logger>& log()
         { return _log; }
 
-    void play() noexcept {}
-    void stop() noexcept {}
+    void play() noexcept override {}
+    void stop() noexcept override {}
 
     static void onNegotiationNeeded(
         MessageProxy*,
