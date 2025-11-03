@@ -11,8 +11,13 @@
 class GstClient : public GstWebRTCPeer
 {
 public:
-    GstClient() : GstWebRTCPeer(Role::Viewer) {}
+    GstClient(bool showVideoStats = false, bool sync = false):
+        GstWebRTCPeer(Role::Viewer), _showVideoStats(showVideoStats), _sync(sync) {}
 
 protected:
     void prepare(const WebRTCConfigPtr&) noexcept override;
+
+private:
+    const bool _showVideoStats;
+    const bool _sync;
 };

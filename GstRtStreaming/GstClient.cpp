@@ -47,7 +47,8 @@ void GstClient::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
         (void (*) (GstElement* webrtc, GstPad* pad, gpointer* userData))
     [] (GstElement* webrtc, GstPad* pad, gpointer* userData)
     {
-        GstElement* pipeline = reinterpret_cast<GstElement*>(userData);
+        GstClient* self = reinterpret_cast<GstClient*>(userData);
+        GstElement* pipeline = self->pipeline();
 
         if(GST_PAD_DIRECTION(pad) != GST_PAD_SRC)
             return;
@@ -57,46 +58,46 @@ void GstClient::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
         g_autoptr(GstCaps) vp8Caps = gst_caps_from_string("application/x-rtp, media=video, encoding-name=VP8");
         g_autoptr(GstCaps) opusCaps = gst_caps_from_string("application/x-rtp, media=audio, encoding-name=OPUS");
 
+        const gchar* decodeBinDescription = nullptr;
+        bool video = true;
         if(gst_caps_is_always_compatible(padCaps, h264Caps)) {
-            GstElement* out =
-                gst_parse_bin_from_description(
-                    "rtph264depay ! avdec_h264 ! "
-                    "videoconvert ! queue ! "
-                    "autovideosink sync=false", TRUE, NULL);
-            gst_bin_add(GST_BIN(pipeline), out);
-            gst_element_sync_state_with_parent(out);
-
-            GstPad* sink = (GstPad*)out->sinkpads->data;
-
-            gst_pad_link(pad, sink);
+            decodeBinDescription = "rtph264depay ! avdec_h264 ! videoconvert ! queue";
         } else if(gst_caps_is_always_compatible(padCaps, vp8Caps)) {
-            GstElement* out =
-                gst_parse_bin_from_description(
-                    "rtpvp8depay ! vp8dec ! "
-                    "videoconvert ! queue ! "
-                    "autovideosink sync=false", TRUE, NULL);
-            gst_bin_add(GST_BIN(pipeline), out);
-            gst_element_sync_state_with_parent(out);
-
-            GstPad* sink = (GstPad*)out->sinkpads->data;
-
-            gst_pad_link(pad, sink);
+            decodeBinDescription = "rtpvp8depay ! vp8dec ! videoconvert ! queue";
         } else if(gst_caps_is_always_compatible(padCaps, opusCaps)) {
-            GstElement* out =
-                gst_parse_bin_from_description(
-                    "rtpopusdepay ! opusdec ! "
-                    "audioconvert ! queue ! "
-                    "autoaudiosink", TRUE, NULL);
-            gst_bin_add(GST_BIN(pipeline), out);
-            gst_element_sync_state_with_parent(out);
+            decodeBinDescription = "rtpopusdepay ! opusdec ! audioconvert ! queue";
+            video = false;
+        }
 
-            GstPad* sink = (GstPad*)out->sinkpads->data;
+        if(decodeBinDescription) {
+            GstElement* decodeBin = gst_parse_bin_from_description(
+                decodeBinDescription,
+                TRUE,
+                nullptr);
 
-            gst_pad_link(pad, sink);
+            gst_bin_add(GST_BIN(pipeline), decodeBin);
+            gst_element_sync_state_with_parent(decodeBin);
+            GstPad* sinkPad = (GstPad*)decodeBin->sinkpads->data;
+            gst_pad_link(pad, sinkPad);
+
+            GstElement* sink;
+            if(video) {
+                sink = self->_showVideoStats ?
+                    gst_element_factory_make("fpsdisplaysink", nullptr) :
+                    gst_element_factory_make("autovideosink", nullptr);
+
+                g_object_set(sink, "sync", self->_sync ? TRUE : FALSE, nullptr);
+            } else {
+                sink =  gst_element_factory_make("autoaudiosink", nullptr);
+            }
+            gst_bin_add(GST_BIN(pipeline), sink);
+            gst_element_sync_state_with_parent(sink);
+            gst_element_link(decodeBin, sink);
         }
     };
     g_signal_connect(rtcbin, "pad-added",
-        G_CALLBACK(onPadAddedCallback), pipeline);
+        G_CALLBACK(onPadAddedCallback),
+        this);
 
     setPipeline(std::move(pipelinePtr));
     setWebRtcBin(*webRTCConfig, std::move(rtcbinPtr));
