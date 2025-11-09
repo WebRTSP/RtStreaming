@@ -195,7 +195,7 @@ void GstWebRTCPeerBase::setWebRtcBin(
                         postLog(
                             rtcbin, spdlog::level::debug,
                             fmt::format(
-                                "[GstWebRTCPeerBase] Selected ICE Pair ({}/{}): Local \"{}\" - Remote \"{}\"",
+                                "Selected ICE Pair ({}/{}): Local \"{}\" - Remote \"{}\"",
                                 streamId, componentId,
                                 NiceCandidateToString(*localCandidate),
                                 NiceCandidateToString(*remoteCandidate)));
@@ -321,7 +321,7 @@ void GstWebRTCPeerBase::onConnectionStateChanged(GstElement* rtcbin)
     }
 
     if(stateName)
-        postLog(rtcbin, spdlog::level::debug, fmt::format("[GstWebRTCPeerBase] Connection State changed: \"{}\"", stateName));
+        postLog(rtcbin, spdlog::level::debug, fmt::format("Connection State changed: \"{}\"", stateName));
 }
 
 // will be called from streaming thread
@@ -353,7 +353,7 @@ void GstWebRTCPeerBase::onSignalingStateChanged(GstElement* rtcbin)
     }
 
     if(stateName)
-        postLog(rtcbin, spdlog::level::debug, fmt::format("[GstWebRTCPeerBase] Signaling State changed: \"{}\"", stateName));
+        postLog(rtcbin, spdlog::level::debug, fmt::format("Signaling State changed: \"{}\"", stateName));
 }
 
 // will be called from streaming thread
@@ -388,7 +388,7 @@ void GstWebRTCPeerBase::onIceConnectionStateChanged(GstElement* rtcbin)
     }
 
     if(stateName)
-        postLog(rtcbin, spdlog::level::debug, fmt::format("[GstWebRTCPeerBase] Ice Connection State changed: \"{}\"", stateName));
+        postLog(rtcbin, spdlog::level::debug, fmt::format("Ice Connection State changed: \"{}\"", stateName));
 }
 
 const std::string& GstWebRTCPeerBase::sdp() noexcept
