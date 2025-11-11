@@ -26,24 +26,26 @@ GstRecordPeer::GstRecordPeer(
     setPipeline(pipeline);
 
     auto onMessageCallback =
-        (void (*) (MessageProxy*, GstMessage*, gpointer))
-        [] (MessageProxy*, GstMessage* message, gpointer userData) {
+        + [] (MessageProxy*, GstMessage* message, gpointer userData) {
             GstRecordPeer* owner = static_cast<GstRecordPeer*>(userData);
             return owner->onMessage(message);
         };
-    _messageHandlerId =
-        g_signal_connect(_messageProxy, "message",
-            G_CALLBACK(onMessageCallback), this);
+    _messageHandlerId = g_signal_connect(
+        _messageProxy,
+        "message",
+        G_CALLBACK(onMessageCallback),
+        this);
 
     auto onEosCallback =
-        (void (*) (MessageProxy*, gboolean, gpointer))
-        [] (MessageProxy*, gboolean error, gpointer userData) {
+        + [] (MessageProxy*, gboolean error, gpointer userData) {
             GstRecordPeer* owner = static_cast<GstRecordPeer*>(userData);
             return owner->onEos(error);
         };
-    _eosHandlerId =
-        g_signal_connect(_messageProxy, "eos",
-            G_CALLBACK(onEosCallback), this);
+    _eosHandlerId = g_signal_connect(
+        _messageProxy,
+        "eos",
+        G_CALLBACK(onEosCallback),
+        this);
 }
 
 GstRecordPeer::~GstRecordPeer()
@@ -209,9 +211,12 @@ void GstRecordPeer::onAnswerCreated(
 
     const GstStructure* reply = gst_promise_get_reply(promise);
     GstWebRTCSessionDescription* sessionDescription = nullptr;
-    gst_structure_get(reply, "answer",
+    gst_structure_get(
+        reply,
+        "answer",
         GST_TYPE_WEBRTC_SESSION_DESCRIPTION,
-        &sessionDescription, NULL);
+        &sessionDescription,
+        NULL);
     GstWebRTCSessionDescriptionPtr sessionDescriptionPtr(sessionDescription);
 
     if(!sessionDescription) {
@@ -219,8 +224,11 @@ void GstRecordPeer::onAnswerCreated(
         return;
     }
 
-    g_signal_emit_by_name(rtcbin,
-        "set-local-description", sessionDescription, NULL);
+    g_signal_emit_by_name(
+        rtcbin,
+        "set-local-description",
+        sessionDescription,
+        NULL);
 
     GCharPtr sdpPtr(gst_sdp_message_as_text(sessionDescription->sdp));
     postSdp(messageProxy, rtcbin, sdpPtr.get());
@@ -252,23 +260,18 @@ void GstRecordPeer::onSetRemoteDescription(
     switch(state) {
     case GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_OFFER: {
         auto onAnswerCreatedCallback =
-            (void (*) (GstPromise*, gpointer))
-            [] (GstPromise* promise, gpointer userData)
-        {
-            PeerData* peerData = static_cast<PeerData*>(userData);
-            return
-                GstRecordPeer::onAnswerCreated(
+            + [] (GstPromise* promise, gpointer userData) {
+                PeerData* peerData = static_cast<PeerData*>(userData);
+                return GstRecordPeer::onAnswerCreated(
                     peerData->messageProxy,
                     peerData->rtcBin,
                     promise);
-        };
+            };
 
-        GstPromise* promise =
-            gst_promise_new_with_change_func(
-                onAnswerCreatedCallback,
-                new PeerData(messageProxy, rtcbin), &PeerData::destroy);
-        g_signal_emit_by_name(
-            rtcbin, "create-answer", nullptr, promise);
+        GstPromise* promise = gst_promise_new_with_change_func(
+            onAnswerCreatedCallback,
+            new PeerData(messageProxy, rtcbin), &PeerData::destroy);
+        g_signal_emit_by_name(rtcbin, "create-answer", nullptr, promise);
 
         break;
     }
@@ -294,29 +297,24 @@ void GstRecordPeer::setRemoteSdp(const std::string& sdp) noexcept
         gst_webrtc_session_description_new(
             GST_WEBRTC_SDP_TYPE_OFFER,
             sdpMessagePtr.release()));
-    GstWebRTCSessionDescription* sessionDescription =
-        sessionDescriptionPtr.get();
+    GstWebRTCSessionDescription* sessionDescription = sessionDescriptionPtr.get();
 
     auto onSetRemoteDescriptionCallback =
-        (void (*) (GstPromise*, gpointer))
-        [] (GstPromise* promise, gpointer userData)
+        + [] (GstPromise* promise, gpointer userData)
     {
         PeerData* data = reinterpret_cast<PeerData*>(userData);
-        return
-            GstRecordPeer::onSetRemoteDescription(
-                data->messageProxy,
-                data->rtcBin,
-                promise);
+        return GstRecordPeer::onSetRemoteDescription(
+            data->messageProxy,
+            data->rtcBin,
+            promise);
     };
 
-    GstPromise* promise =
-        gst_promise_new_with_change_func(
-            onSetRemoteDescriptionCallback,
-            new PeerData(_messageProxy, rtcbin),
-             &PeerData::destroy);
+    GstPromise* promise = gst_promise_new_with_change_func(
+        onSetRemoteDescriptionCallback,
+        new PeerData(_messageProxy, rtcbin),
+         &PeerData::destroy);
 
-    g_signal_emit_by_name(rtcbin,
-        "set-remote-description", sessionDescription, promise);
+    g_signal_emit_by_name(rtcbin, "set-remote-description", sessionDescription, promise);
 }
 
 void GstRecordPeer::internalPrepare() noexcept
@@ -329,24 +327,27 @@ void GstRecordPeer::internalPrepare() noexcept
 
     if(!IceGatheringStateBroken) {
         auto onIceGatheringStateChangedCallback =
-            (void (*) (GstElement*, GParamSpec* , MessageProxy*))
-            [] (GstElement* rtcbin, GParamSpec*, MessageProxy* messageProxy) {
+            + [] (GstElement* rtcbin, GParamSpec*, MessageProxy* messageProxy) {
                 return GstRecordPeer::onIceGatheringStateChanged(messageProxy, rtcbin);
             };
-        _iceGatheringStateHandlerId =
-            g_signal_connect_object(rtcbin,
-                "notify::ice-gathering-state",
-                G_CALLBACK(onIceGatheringStateChangedCallback), _messageProxy, GConnectFlags());
+        _iceGatheringStateHandlerId = g_signal_connect_object(
+            rtcbin,
+            "notify::ice-gathering-state",
+            G_CALLBACK(onIceGatheringStateChangedCallback),
+            _messageProxy,
+            G_CONNECT_DEFAULT);
     }
 
     auto onIceCandidateCallback =
-        (void (*) (GstElement*, guint, gchar*, MessageProxy*))
-        [] (GstElement* rtcbin, guint candidate, gchar* arg2, MessageProxy* messageProxy) {
+        + [] (GstElement* rtcbin, guint candidate, gchar* arg2, MessageProxy* messageProxy) {
             postIceCandidate(messageProxy, rtcbin, candidate, arg2);
         };
-    _iceCandidateHandlerId =
-        g_signal_connect_object(rtcbin, "on-ice-candidate",
-            G_CALLBACK(onIceCandidateCallback), _messageProxy, GConnectFlags());
+    _iceCandidateHandlerId = g_signal_connect_object(
+        rtcbin,
+        "on-ice-candidate",
+        G_CALLBACK(onIceCandidateCallback),
+        _messageProxy,
+        G_CONNECT_DEFAULT);
 
     GstCapsPtr capsPtr(gst_caps_from_string("application/x-rtp, media=video"));
     GstWebRTCRTPTransceiver* recvonlyTransceiver = nullptr;

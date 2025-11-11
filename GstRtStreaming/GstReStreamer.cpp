@@ -51,21 +51,17 @@ void GstReStreamer::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
     g_object_set(decodebin, "caps", supportedCaps, nullptr);
 
     auto srcPadAddedCallback =
-        (void (*)(GstElement*, GstPad*, gpointer))
-         [] (GstElement* decodebin, GstPad* pad, gpointer userData)
-    {
-        GstReStreamer* self = static_cast<GstReStreamer*>(userData);
-        self->srcPadAdded(decodebin, pad);
-    };
+        + [] (GstElement* decodebin, GstPad* pad, gpointer userData) {
+            GstReStreamer* self = static_cast<GstReStreamer*>(userData);
+            self->srcPadAdded(decodebin, pad);
+        };
     g_signal_connect(decodebin, "pad-added", G_CALLBACK(srcPadAddedCallback), this);
 
     auto noMorePadsCallback =
-        (void (*)(GstElement*,  gpointer))
-         [] (GstElement* decodebin, gpointer userData)
-    {
-        GstReStreamer* self = static_cast<GstReStreamer*>(userData);
-        self->noMorePads(decodebin);
-    };
+        + [] (GstElement* decodebin, gpointer userData) {
+            GstReStreamer* self = static_cast<GstReStreamer*>(userData);
+            self->noMorePads(decodebin);
+        };
     g_signal_connect(decodebin, "no-more-pads", G_CALLBACK(noMorePadsCallback), this);
 
     g_object_set(decodebin,

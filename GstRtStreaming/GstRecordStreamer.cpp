@@ -58,28 +58,34 @@ void GstRecordStreamer::recordPrepare() noexcept
     GstCapsPtr capsPtr(gst_caps_from_string("application/x-rtp, media=video"));
     GstWebRTCRTPTransceiver* recvonlyTransceiver = nullptr;
     g_signal_emit_by_name(
-        rtcbin, "add-transceiver",
-        GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY, capsPtr.get(),
+        rtcbin,
+        "add-transceiver",
+        GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY,
+        capsPtr.get(),
         &recvonlyTransceiver);
     GstWebRTCRTPTransceiverPtr recvonlyTransceiverPtr(recvonlyTransceiver);
 
     auto srcPadAddedCallback =
-        (void (*)(GstElement*, GstPad*, gpointer))
-        [] (GstElement* rtcbin, GstPad* pad, gpointer userData) {
+        + [] (GstElement* rtcbin, GstPad* pad, gpointer userData) {
             GstRecordStreamer* self = static_cast<GstRecordStreamer*>(userData);
             self->srcPadAdded(rtcbin, pad);
         };
-    _padAddedHandlerId =
-        g_signal_connect(rtcbin, "pad-added", G_CALLBACK(srcPadAddedCallback), this);
+    _padAddedHandlerId = g_signal_connect(
+        rtcbin,
+        "pad-added",
+        G_CALLBACK(srcPadAddedCallback),
+        this);
 
     auto noMorePadsCallback =
-        (void (*)(GstElement*,  gpointer))
-        [] (GstElement* rtcbin, gpointer userData) {
+        + [] (GstElement* rtcbin, gpointer userData) {
             GstRecordStreamer* self = static_cast<GstRecordStreamer*>(userData);
             self->noMorePads(rtcbin);
         };
-    _noMorePadsHandlerId =
-        g_signal_connect(rtcbin, "no-more-pads", G_CALLBACK(noMorePadsCallback), this);
+    _noMorePadsHandlerId = g_signal_connect(
+        rtcbin,
+        "no-more-pads",
+        G_CALLBACK(noMorePadsCallback),
+        this);
 
     setPipeline(std::move(pipelinePtr));
     _rtcbinPtr = std::move(rtcbinPtr);
@@ -196,13 +202,12 @@ void GstRecordStreamer::srcPadAdded(
             ),
             new FormatLocationData { _recordOptions->dir },
             [] (gpointer userData, GClosure*) { delete(static_cast<FormatLocationData*>(userData)); },
-            GConnectFlags());
+            G_CONNECT_DEFAULT);
     } else {
-        transformBin =
-            gst_parse_bin_from_description(
-                "rtph264depay ! h264parse config-interval=-1 ! rtph264pay pt=96 ! "
-                "capssetter caps=\"application/x-rtp,profile-level-id=(string)42c015\"",
-                TRUE, NULL);
+        transformBin = gst_parse_bin_from_description(
+            "rtph264depay ! h264parse config-interval=-1 ! rtph264pay pt=96 ! "
+            "capssetter caps=\"application/x-rtp,profile-level-id=(string)42c015\"",
+            TRUE, NULL);
     }
     gst_element_set_name(transformBin, "transform-bin");
     gst_bin_add(GST_BIN(pipeline), transformBin);

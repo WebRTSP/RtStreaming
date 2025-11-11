@@ -159,8 +159,7 @@ void GstStreamingSource::setPipeline(GstElementPtr&& pipelinePtr) noexcept
     GstElement* pipeline = this->pipeline();
 
     auto onBusMessageCallback =
-        (gboolean (*) (GstBus*, GstMessage*, gpointer))
-        [] (GstBus* bus, GstMessage* message, gpointer userData) -> gboolean {
+        + [] (GstBus* bus, GstMessage* message, gpointer userData) -> gboolean {
             GstStreamingSource* self = static_cast<GstStreamingSource*>(userData);
             return self->onBusMessage(message);
         };
@@ -274,20 +273,24 @@ void GstStreamingSource::setTee(GstElement* tee) noexcept
     GstElement* pipeline = this->pipeline();
 
     auto onPadAddedCallback =
-        (void (*) (GstElement*, GstPad*, gpointer*))
-        [] (GstElement* tee, GstPad*, gpointer*) {
+        + [] (GstElement* tee, GstPad*, gpointer*) {
             postTeePadAdded(tee);
         };
-    g_signal_connect(tee, "pad-added",
-        G_CALLBACK(onPadAddedCallback), pipeline);
+    g_signal_connect(
+        tee,
+        "pad-added",
+        G_CALLBACK(onPadAddedCallback),
+        pipeline);
 
     auto onPadRemovedCallback =
-        (void (*) (GstElement*, GstPad*, gpointer*))
-        [] (GstElement* tee, GstPad* pad, gpointer*) {
+        + [] (GstElement* tee, GstPad* pad, gpointer*) {
             postTeePadRemoved(tee);
         };
-    g_signal_connect(tee, "pad-removed",
-        G_CALLBACK(onPadRemovedCallback), pipeline);
+    g_signal_connect(
+        tee,
+        "pad-removed",
+        G_CALLBACK(onPadRemovedCallback),
+        pipeline);
 
     _fakeSinkPtr.reset(gst_element_factory_make("fakesink", nullptr));
     GstElement* fakeSink = _fakeSinkPtr.get();
@@ -347,7 +350,8 @@ std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
     MessageProxyPtr messageProxyPtr(message_proxy_new());
     MessageProxy* messageProxy = messageProxyPtr.get();
 
-    g_object_weak_ref(G_OBJECT(messageProxy),
+    g_object_weak_ref(
+        G_OBJECT(messageProxy),
         [] (gpointer data, GObject* object) {
             GstStreamingSource* self = static_cast<GstStreamingSource*>(data);
             self->onPeerDestroyed(_MESSAGE_PROXY(object));

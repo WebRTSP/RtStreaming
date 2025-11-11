@@ -54,16 +54,14 @@ bool GstReStreamer2::prepare() noexcept
     g_object_set(decodebin, "caps", supportedCaps, nullptr);
 
     auto srcPadAddedCallback =
-        (void (*)(GstElement*, GstPad*, gpointer))
-        [] (GstElement* decodebin, GstPad* pad, gpointer userData) {
+        + [] (GstElement* decodebin, GstPad* pad, gpointer userData) {
             GstReStreamer2* self = static_cast<GstReStreamer2*>(userData);
             self->srcPadAdded(decodebin, pad);
         };
     g_signal_connect(decodebin, "pad-added", G_CALLBACK(srcPadAddedCallback), this);
 
     auto noMorePadsCallback =
-        (void (*)(GstElement*,  gpointer))
-        [] (GstElement* decodebin, gpointer userData) {
+        + [] (GstElement* decodebin, gpointer userData) {
             GstReStreamer2* self = static_cast<GstReStreamer2*>(userData);
             self->noMorePads(decodebin);
         };

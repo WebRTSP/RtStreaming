@@ -207,8 +207,7 @@ void GstWebRTCPeer::setPipeline(GstElementPtr&& pipelinePtr) noexcept
     GstElement* pipeline = this->pipeline();
 
     auto onBusMessageCallback =
-        [] (GstBus* bus, GstMessage* message, gpointer userData) -> gboolean
-        {
+        [] (GstBus* bus, GstMessage* message, gpointer userData) -> gboolean {
             GstWebRTCPeer* self = static_cast<GstWebRTCPeer*>(userData);
             return self->onBusMessage(message);
         };
@@ -230,40 +229,41 @@ void GstWebRTCPeer::setWebRtcBin(
 
     if(Role::Streamer == _role) {
         auto onNegotiationNeededCallback =
-            (void (*) (GstElement*, gpointer))
-            [] (GstElement* rtcbin, gpointer userData)
-            {
+            + [] (GstElement* rtcbin, gpointer userData) {
                 GstWebRTCPeer* owner = static_cast<GstWebRTCPeer*>(userData);
                 assert(rtcbin == owner->webRtcBin());
                 return GstWebRTCPeer::onNegotiationNeeded(rtcbin);
             };
-        g_signal_connect(rtcbin, "on-negotiation-needed",
-            G_CALLBACK(onNegotiationNeededCallback), this);
+        g_signal_connect(
+            rtcbin,
+            "on-negotiation-needed",
+            G_CALLBACK(onNegotiationNeededCallback),
+            this);
     }
 
     if(!IceGatheringStateBroken) {
         auto onIceGatheringStateChangedCallback =
-            (void (*) (GstElement*, GParamSpec*, gpointer))
-            [] (GstElement* rtcbin, GParamSpec*, gpointer userData)
-        {
-            return GstWebRTCPeer::onIceGatheringStateChanged(rtcbin);
-        };
-        g_signal_connect(rtcbin,
+            + [] (GstElement* rtcbin, GParamSpec*, gpointer userData) {
+                return GstWebRTCPeer::onIceGatheringStateChanged(rtcbin);
+            };
+        g_signal_connect(
+            rtcbin,
             "notify::ice-gathering-state",
             G_CALLBACK(onIceGatheringStateChangedCallback),
             nullptr);
     }
 
     auto onIceCandidateCallback =
-        (void (*) (GstElement*, guint, gchar*, gpointer))
-        [] (GstElement* rtcbin, guint mlineIndex, gchar* candidate, gpointer userData)
-        {
+        + [] (GstElement* rtcbin, guint mlineIndex, gchar* candidate, gpointer userData) {
             GstWebRTCPeer* self = static_cast<GstWebRTCPeer*>(userData);
             assert(rtcbin == self->webRtcBin());
             postIceCandidate(rtcbin, mlineIndex, candidate);
         };
-    g_signal_connect(rtcbin, "on-ice-candidate",
-        G_CALLBACK(onIceCandidateCallback), this);
+    g_signal_connect(
+        rtcbin,
+        "on-ice-candidate",
+        G_CALLBACK(onIceCandidateCallback),
+        this);
 
     if(Role::Streamer == _role) {
         GArray* transceivers;
@@ -289,13 +289,15 @@ void GstWebRTCPeer::onOfferCreated(
 
     const GstStructure* reply = gst_promise_get_reply(promise);
     GstWebRTCSessionDescription* sessionDescription = nullptr;
-    gst_structure_get(reply, "offer",
+    gst_structure_get(
+        reply,
+        "offer",
         GST_TYPE_WEBRTC_SESSION_DESCRIPTION,
-        &sessionDescription, NULL);
+        &sessionDescription,
+        NULL);
     GstWebRTCSessionDescriptionPtr sessionDescriptionPtr(sessionDescription);
 
-    g_signal_emit_by_name(rtcbin,
-        "set-local-description", sessionDescription, NULL);
+    g_signal_emit_by_name(rtcbin, "set-local-description", sessionDescription, NULL);
 
     GCharPtr sdpPtr(gst_sdp_message_as_text(sessionDescription->sdp));
     postSdp(rtcbin, sdpPtr.get());
@@ -305,17 +307,15 @@ void GstWebRTCPeer::onOfferCreated(
 void GstWebRTCPeer::onNegotiationNeeded(GstElement* rtcbin)
 {
     auto onOfferCreatedCallback =
-        (void (*) (GstPromise*, gpointer))
-        [] (GstPromise* promise, gpointer userData)
-    {
-        GstElement* rtcbin = static_cast<GstElement*>(userData);
-        return GstWebRTCPeer::onOfferCreated(rtcbin, promise);
-    };
+        + [] (GstPromise* promise, gpointer userData) {
+            GstElement* rtcbin = static_cast<GstElement*>(userData);
+            return GstWebRTCPeer::onOfferCreated(rtcbin, promise);
+        };
 
-    GstPromise* promise =
-        gst_promise_new_with_change_func(
-            onOfferCreatedCallback,
-            rtcbin, nullptr);
+    GstPromise* promise = gst_promise_new_with_change_func(
+        onOfferCreatedCallback,
+        rtcbin,
+        nullptr);
     g_signal_emit_by_name(
         rtcbin, "create-offer", nullptr, promise);
 }
@@ -373,19 +373,16 @@ void GstWebRTCPeer::onSetRemoteDescription(
         break;
     case GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_OFFER: {
         auto onAnswerCreatedCallback =
-            (void (*) (GstPromise*, gpointer))
-            [] (GstPromise* promise, gpointer userData)
-        {
-            GstElement* rtcbin = static_cast<GstElement*>(userData);
-            return GstWebRTCPeer::onAnswerCreated(rtcbin, promise);
-        };
+            + [] (GstPromise* promise, gpointer userData) {
+                GstElement* rtcbin = static_cast<GstElement*>(userData);
+                return GstWebRTCPeer::onAnswerCreated(rtcbin, promise);
+            };
 
-        GstPromise* promise =
-            gst_promise_new_with_change_func(
-                onAnswerCreatedCallback,
-                rtcbin, nullptr);
-        g_signal_emit_by_name(
-            rtcbin, "create-answer", nullptr, promise);
+        GstPromise* promise = gst_promise_new_with_change_func(
+            onAnswerCreatedCallback,
+            rtcbin,
+            nullptr);
+        g_signal_emit_by_name(rtcbin, "create-answer", nullptr, promise);
 
         break;
     }
@@ -415,20 +412,22 @@ void GstWebRTCPeer::setRemoteSdp(const std::string& sdp) noexcept
         sessionDescriptionPtr.get();
 
     auto onSetRemoteDescriptionCallback =
-        (void (*) (GstPromise*, gpointer))
-        [] (GstPromise* promise, gpointer userData)
+        + [] (GstPromise* promise, gpointer userData)
     {
         GstElement* rtcbin = static_cast<GstElement*>(userData);
         return GstWebRTCPeer::onSetRemoteDescription(rtcbin, promise);
     };
 
-    GstPromise* promise =
-        gst_promise_new_with_change_func(
-            onSetRemoteDescriptionCallback,
-            rtcbin, nullptr);
+    GstPromise* promise = gst_promise_new_with_change_func(
+        onSetRemoteDescriptionCallback,
+        rtcbin,
+        nullptr);
 
-    g_signal_emit_by_name(rtcbin,
-        "set-remote-description", sessionDescription, promise);
+    g_signal_emit_by_name(
+        rtcbin,
+        "set-remote-description",
+        sessionDescription,
+        promise);
 }
 
 void GstWebRTCPeer::prepare(

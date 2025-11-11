@@ -17,37 +17,32 @@ GstWebRTCPeer2::GstWebRTCPeer2(MessageProxy* messageProxy) :
     _messageProxy(_MESSAGE_PROXY(g_object_ref(messageProxy)))
 {
     auto onTeeCallback =
-        (void (*) (MessageProxy*, GstElement*, gpointer))
-        [] (MessageProxy*, GstElement* tee, gpointer userData) {
+        + [] (MessageProxy*, GstElement* tee, gpointer userData) {
             GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
             assert(!owner->pipeline() && !owner->_teePtr);
             owner->setPipeline(GstElementPtr(GST_ELEMENT(gst_object_get_parent(GST_OBJECT(tee)))));
             owner->_teePtr.reset(GST_ELEMENT(g_object_ref(tee))),
             owner->internalPrepare();
         };
-    _teeHandlerId =
-        g_signal_connect(_messageProxy, "tee",
-            G_CALLBACK(onTeeCallback), this);
+    _teeHandlerId = g_signal_connect(_messageProxy, "tee", G_CALLBACK(onTeeCallback), this);
 
     auto onMessageCallback =
-        (void (*) (MessageProxy*, GstMessage*, gpointer))
-        [] (MessageProxy*, GstMessage* message, gpointer userData) {
+        + [] (MessageProxy*, GstMessage* message, gpointer userData) {
             GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
             return owner->onMessage(message);
         };
-    _messageHandlerId =
-        g_signal_connect(_messageProxy, "message",
-            G_CALLBACK(onMessageCallback), this);
+    _messageHandlerId = g_signal_connect(
+        _messageProxy,
+        "message",
+        G_CALLBACK(onMessageCallback),
+        this);
 
     auto onEosCallback =
-        (void (*) (MessageProxy*, gboolean, gpointer))
-        [] (MessageProxy*, gboolean error, gpointer userData) {
+        + [] (MessageProxy*, gboolean error, gpointer userData) {
             GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
             return owner->onEos(error);
         };
-    _eosHandlerId =
-        g_signal_connect(_messageProxy, "eos",
-            G_CALLBACK(onEosCallback), this);
+    _eosHandlerId = g_signal_connect(_messageProxy, "eos", G_CALLBACK(onEosCallback), this);
 }
 
 namespace {
@@ -276,31 +271,39 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
         return;
 
     auto onNegotiationNeededCallback =
-        (void (*) (GstElement*, MessageProxy*))
-        [] (GstElement* rtcbin, MessageProxy* messageProxy) {
+        + [] (GstElement* rtcbin, MessageProxy* messageProxy) {
             return GstWebRTCPeer2::onNegotiationNeeded(messageProxy, rtcbin);
         };
-    g_signal_connect_object(rtcbin, "on-negotiation-needed",
-        G_CALLBACK(onNegotiationNeededCallback), _messageProxy, GConnectFlags());
+    g_signal_connect_object(
+        rtcbin,
+        "on-negotiation-needed",
+        G_CALLBACK(onNegotiationNeededCallback),
+        _messageProxy,
+        G_CONNECT_DEFAULT);
 
     if(!IceGatheringStateBroken) {
         auto onIceGatheringStateChangedCallback =
-            (void (*) (GstElement*, GParamSpec* , MessageProxy*))
-            [] (GstElement* rtcbin, GParamSpec*, MessageProxy* messageProxy) {
+            + [] (GstElement* rtcbin, GParamSpec*, MessageProxy* messageProxy) {
                 return GstWebRTCPeer2::onIceGatheringStateChanged(messageProxy, rtcbin);
             };
-        g_signal_connect_object(rtcbin,
+        g_signal_connect_object(
+            rtcbin,
             "notify::ice-gathering-state",
-            G_CALLBACK(onIceGatheringStateChangedCallback), _messageProxy, GConnectFlags());
+            G_CALLBACK(onIceGatheringStateChangedCallback),
+            _messageProxy,
+            G_CONNECT_DEFAULT);
     }
 
     auto onIceCandidateCallback =
-        (void (*) (GstElement*, guint, gchar*, MessageProxy*))
-        [] (GstElement* rtcbin, guint candidate, gchar* arg2, MessageProxy* messageProxy) {
+        + [] (GstElement* rtcbin, guint candidate, gchar* arg2, MessageProxy* messageProxy) {
             postIceCandidate(messageProxy, rtcbin, candidate, arg2);
         };
-    g_signal_connect_object(rtcbin, "on-ice-candidate",
-        G_CALLBACK(onIceCandidateCallback), _messageProxy, GConnectFlags());
+    g_signal_connect_object(
+        rtcbin,
+        "on-ice-candidate",
+        G_CALLBACK(onIceCandidateCallback),
+        _messageProxy,
+        G_CONNECT_DEFAULT);
 }
 
 // will be called from streaming thread
@@ -380,20 +383,16 @@ void GstWebRTCPeer2::onNegotiationNeeded(
     GstElement* rtcbin)
 {
     auto onOfferCreatedCallback =
-        (void (*) (GstPromise*, gpointer))
-        [] (GstPromise* promise, gpointer userData)
-    {
-        PeerData* data = reinterpret_cast<PeerData*>(userData);
-        GstWebRTCPeer2::onOfferCreated(data->messageProxy, data->rtcBin, promise);
-    };
+        + [] (GstPromise* promise, gpointer userData) {
+            PeerData* data = reinterpret_cast<PeerData*>(userData);
+            GstWebRTCPeer2::onOfferCreated(data->messageProxy, data->rtcBin, promise);
+        };
 
-    GstPromise* promise =
-        gst_promise_new_with_change_func(
-            onOfferCreatedCallback,
-            new PeerData(messageProxy, rtcbin),
-            &PeerData::destroy);
-    g_signal_emit_by_name(
-        rtcbin, "create-offer", nullptr, promise);
+    GstPromise* promise = gst_promise_new_with_change_func(
+        onOfferCreatedCallback,
+        new PeerData(messageProxy, rtcbin),
+        &PeerData::destroy);
+    g_signal_emit_by_name(rtcbin, "create-offer", nullptr, promise);
 }
 
 // will be called from streaming thread
@@ -493,23 +492,18 @@ void GstWebRTCPeer2::onSetRemoteDescription(
         break;
     case GST_WEBRTC_SIGNALING_STATE_HAVE_REMOTE_OFFER: {
         auto onAnswerCreatedCallback =
-            (void (*) (GstPromise*, gpointer))
-            [] (GstPromise* promise, gpointer userData)
-        {
-            PeerData* peerData = static_cast<PeerData*>(userData);
-            return
-                GstWebRTCPeer2::onAnswerCreated(
+            + [] (GstPromise* promise, gpointer userData) {
+                PeerData* peerData = static_cast<PeerData*>(userData);
+                return GstWebRTCPeer2::onAnswerCreated(
                     peerData->messageProxy,
                     peerData->rtcBin,
                     promise);
-        };
-
-        GstPromise* promise =
-            gst_promise_new_with_change_func(
-                onAnswerCreatedCallback,
-                new PeerData(messageProxy, rtcbin), &PeerData::destroy);
-        g_signal_emit_by_name(
-            rtcbin, "create-answer", nullptr, promise);
+            };
+        GstPromise* promise = gst_promise_new_with_change_func(
+            onAnswerCreatedCallback,
+            new PeerData(messageProxy, rtcbin),
+            &PeerData::destroy);
+        g_signal_emit_by_name(rtcbin, "create-answer", nullptr, promise);
 
         break;
     }
@@ -539,25 +533,20 @@ void GstWebRTCPeer2::setRemoteSdp(const std::string& sdp) noexcept
         sessionDescriptionPtr.get();
 
     auto onSetRemoteDescriptionCallback =
-        (void (*) (GstPromise*, gpointer))
-        [] (GstPromise* promise, gpointer userData)
-    {
-        PeerData* data = reinterpret_cast<PeerData*>(userData);
-        return
-            GstWebRTCPeer2::onSetRemoteDescription(
+        + [] (GstPromise* promise, gpointer userData) {
+            PeerData* data = reinterpret_cast<PeerData*>(userData);
+            return GstWebRTCPeer2::onSetRemoteDescription(
                 data->messageProxy,
                 data->rtcBin,
                 promise);
-    };
+        };
 
-    GstPromise* promise =
-        gst_promise_new_with_change_func(
-            onSetRemoteDescriptionCallback,
-            new PeerData(_messageProxy, rtcbin),
-             &PeerData::destroy);
+    GstPromise* promise = gst_promise_new_with_change_func(
+        onSetRemoteDescriptionCallback,
+        new PeerData(_messageProxy, rtcbin),
+        &PeerData::destroy);
 
-    g_signal_emit_by_name(rtcbin,
-        "set-remote-description", sessionDescription, promise);
+    g_signal_emit_by_name(rtcbin, "set-remote-description", sessionDescription, promise);
 }
 
 namespace {
@@ -575,16 +564,14 @@ struct PrepareData {
 
 void GstWebRTCPeer2::internalPrepare() noexcept
 {
-    if(!clientAttached()) {
+    if(!clientAttached())
         return;
-    }
 
     GstElement* pipeline = this->pipeline();
     GstElement* tee = this->tee();
 
-    if(!pipeline || !tee) {
+    if(!pipeline || !tee)
         return;
-    }
 
     assert(!webRtcBin());
     if(webRtcBin()) {

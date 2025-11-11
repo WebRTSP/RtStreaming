@@ -28,8 +28,10 @@ void GstClient::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
         GstCapsPtr capsPtr(gst_caps_from_string("application/x-rtp, media=video"));
         GstWebRTCRTPTransceiver* recvonlyTransceiver = nullptr;
         g_signal_emit_by_name(
-            rtcbin, "add-transceiver",
-            GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY, capsPtr.get(),
+            rtcbin,
+            "add-transceiver",
+            GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY,
+            capsPtr.get(),
             &recvonlyTransceiver);
         GstWebRTCRTPTransceiverPtr recvonlyTransceiverPtr(recvonlyTransceiver);
     }
@@ -37,65 +39,67 @@ void GstClient::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
         GstCapsPtr capsPtr(gst_caps_from_string("application/x-rtp, media=audio"));
         GstWebRTCRTPTransceiver* recvonlyTransceiver = nullptr;
         g_signal_emit_by_name(
-            rtcbin, "add-transceiver",
-            GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY, capsPtr.get(),
+            rtcbin,
+            "add-transceiver",
+            GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY,
+            capsPtr.get(),
             &recvonlyTransceiver);
         GstWebRTCRTPTransceiverPtr recvonlyTransceiverPtr(recvonlyTransceiver);
     }
 
     auto onPadAddedCallback =
-        (void (*) (GstElement* webrtc, GstPad* pad, gpointer* userData))
-    [] (GstElement* webrtc, GstPad* pad, gpointer* userData)
-    {
-        GstClient* self = reinterpret_cast<GstClient*>(userData);
-        GstElement* pipeline = self->pipeline();
+        + [] (GstElement* webrtc, GstPad* pad, gpointer* userData) {
+            GstClient* self = reinterpret_cast<GstClient*>(userData);
+            GstElement* pipeline = self->pipeline();
 
-        if(GST_PAD_DIRECTION(pad) != GST_PAD_SRC)
-            return;
+            if(GST_PAD_DIRECTION(pad) != GST_PAD_SRC)
+                return;
 
-        g_autoptr(GstCaps) padCaps = gst_pad_get_current_caps(pad);
-        g_autoptr(GstCaps) h264Caps = gst_caps_from_string("application/x-rtp, media=video, encoding-name=H264");
-        g_autoptr(GstCaps) vp8Caps = gst_caps_from_string("application/x-rtp, media=video, encoding-name=VP8");
-        g_autoptr(GstCaps) opusCaps = gst_caps_from_string("application/x-rtp, media=audio, encoding-name=OPUS");
+            g_autoptr(GstCaps) padCaps = gst_pad_get_current_caps(pad);
+            g_autoptr(GstCaps) h264Caps = gst_caps_from_string("application/x-rtp, media=video, encoding-name=H264");
+            g_autoptr(GstCaps) vp8Caps = gst_caps_from_string("application/x-rtp, media=video, encoding-name=VP8");
+            g_autoptr(GstCaps) opusCaps = gst_caps_from_string("application/x-rtp, media=audio, encoding-name=OPUS");
 
-        const gchar* decodeBinDescription = nullptr;
-        bool video = true;
-        if(gst_caps_is_always_compatible(padCaps, h264Caps)) {
-            decodeBinDescription = "rtph264depay ! avdec_h264 ! videoconvert ! queue";
-        } else if(gst_caps_is_always_compatible(padCaps, vp8Caps)) {
-            decodeBinDescription = "rtpvp8depay ! vp8dec ! videoconvert ! queue";
-        } else if(gst_caps_is_always_compatible(padCaps, opusCaps)) {
-            decodeBinDescription = "rtpopusdepay ! opusdec ! audioconvert ! queue";
-            video = false;
-        }
-
-        if(decodeBinDescription) {
-            GstElement* decodeBin = gst_parse_bin_from_description(
-                decodeBinDescription,
-                TRUE,
-                nullptr);
-
-            gst_bin_add(GST_BIN(pipeline), decodeBin);
-            gst_element_sync_state_with_parent(decodeBin);
-            GstPad* sinkPad = (GstPad*)decodeBin->sinkpads->data;
-            gst_pad_link(pad, sinkPad);
-
-            GstElement* sink;
-            if(video) {
-                sink = self->_showVideoStats ?
-                    gst_element_factory_make("fpsdisplaysink", nullptr) :
-                    gst_element_factory_make("autovideosink", nullptr);
-
-                g_object_set(sink, "sync", self->_sync ? TRUE : FALSE, nullptr);
-            } else {
-                sink =  gst_element_factory_make("autoaudiosink", nullptr);
+            const gchar* decodeBinDescription = nullptr;
+            bool video = true;
+            if(gst_caps_is_always_compatible(padCaps, h264Caps)) {
+                decodeBinDescription = "rtph264depay ! avdec_h264 ! videoconvert ! queue";
+            } else if(gst_caps_is_always_compatible(padCaps, vp8Caps)) {
+                decodeBinDescription = "rtpvp8depay ! vp8dec ! videoconvert ! queue";
+            } else if(gst_caps_is_always_compatible(padCaps, opusCaps)) {
+                decodeBinDescription = "rtpopusdepay ! opusdec ! audioconvert ! queue";
+                video = false;
             }
-            gst_bin_add(GST_BIN(pipeline), sink);
-            gst_element_sync_state_with_parent(sink);
-            gst_element_link(decodeBin, sink);
-        }
-    };
-    g_signal_connect(rtcbin, "pad-added",
+
+            if(decodeBinDescription) {
+                GstElement* decodeBin = gst_parse_bin_from_description(
+                    decodeBinDescription,
+                    TRUE,
+                    nullptr);
+
+                gst_bin_add(GST_BIN(pipeline), decodeBin);
+                gst_element_sync_state_with_parent(decodeBin);
+                GstPad* sinkPad = (GstPad*)decodeBin->sinkpads->data;
+                gst_pad_link(pad, sinkPad);
+
+                GstElement* sink;
+                if(video) {
+                    sink = self->_showVideoStats ?
+                        gst_element_factory_make("fpsdisplaysink", nullptr) :
+                        gst_element_factory_make("autovideosink", nullptr);
+
+                    g_object_set(sink, "sync", self->_sync ? TRUE : FALSE, nullptr);
+                } else {
+                    sink =  gst_element_factory_make("autoaudiosink", nullptr);
+                }
+                gst_bin_add(GST_BIN(pipeline), sink);
+                gst_element_sync_state_with_parent(sink);
+                gst_element_link(decodeBin, sink);
+            }
+        };
+    g_signal_connect(
+        rtcbin,
+        "pad-added",
         G_CALLBACK(onPadAddedCallback),
         this);
 

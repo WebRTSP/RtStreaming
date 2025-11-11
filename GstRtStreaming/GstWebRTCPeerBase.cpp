@@ -138,31 +138,34 @@ void GstWebRTCPeerBase::setWebRtcBin(
     g_object_set(rtcbin, "bundle-policy", GST_WEBRTC_BUNDLE_POLICY_MAX_COMPAT, nullptr);
 
     auto onConnectionStateChangedCallback =
-        (void (*) (GstElement*, GParamSpec* , gpointer))
-        [] (GstElement* rtcbin, GParamSpec*, gpointer) {
+        + [] (GstElement* rtcbin, GParamSpec*, gpointer) {
             GstWebRTCPeerBase::onConnectionStateChanged(rtcbin);
         };
-    g_signal_connect(rtcbin,
+    g_signal_connect(
+        rtcbin,
         "notify::connection-state",
-        G_CALLBACK(onConnectionStateChangedCallback), nullptr);
+        G_CALLBACK(onConnectionStateChangedCallback),
+        nullptr);
 
     auto onSignalingStateChangedCallback =
-        (void (*) (GstElement*, GParamSpec* , gpointer))
-        [] (GstElement* rtcbin, GParamSpec*, gpointer) {
+        + [] (GstElement* rtcbin, GParamSpec*, gpointer) {
             GstWebRTCPeerBase::onSignalingStateChanged(rtcbin);
         };
-    g_signal_connect(rtcbin,
+    g_signal_connect(
+        rtcbin,
         "notify::signaling-state",
-        G_CALLBACK(onSignalingStateChangedCallback), nullptr);
+        G_CALLBACK(onSignalingStateChangedCallback),
+        nullptr);
 
     auto onIceConnectionStateChangedCallback =
-        (void (*) (GstElement*, GParamSpec* , gpointer))
-        [] (GstElement* rtcbin, GParamSpec*, gpointer) {
+        + [] (GstElement* rtcbin, GParamSpec*, gpointer) {
             GstWebRTCPeerBase::onIceConnectionStateChanged(rtcbin);
         };
-    g_signal_connect(rtcbin,
+    g_signal_connect(
+        rtcbin,
         "notify::ice-connection-state",
-        G_CALLBACK(onIceConnectionStateChangedCallback), nullptr);
+        G_CALLBACK(onIceConnectionStateChangedCallback),
+        nullptr);
 
     if(IsIceAgentAvailable) {
         GstObject* iceAgent = nullptr;
@@ -184,8 +187,8 @@ void GstWebRTCPeerBase::setWebRtcBin(
                 GObjectPtr niceAgentPtr(G_OBJECT(niceAgent));
 
                 auto onSelectedPairCallback =
-                    (void (*)(NiceAgent*, guint, guint, NiceCandidate*, NiceCandidate*, gpointer))
-                    [] (NiceAgent* agent,
+                    + [] (
+                        NiceAgent* agent,
                         guint streamId, guint componentId,
                         NiceCandidate* localCandidate,
                         NiceCandidate* remoteCandidate,
@@ -201,9 +204,11 @@ void GstWebRTCPeerBase::setWebRtcBin(
                                 NiceCandidateToString(*remoteCandidate)));
                     };
 
-                g_signal_connect(niceAgent,
+                g_signal_connect(
+                    niceAgent,
                     "new-selected-pair-full",
-                    G_CALLBACK(onSelectedPairCallback), rtcbin);
+                    G_CALLBACK(onSelectedPairCallback),
+                    rtcbin);
             }
         }
     }
@@ -405,8 +410,10 @@ void GstWebRTCPeerBase::addIceCandidate(
     if(candidate.empty() || candidate == "a=end-of-candidates") {
         if(EndOfCandidatesSupported) {
             g_signal_emit_by_name(
-                rtcbin, "add-ice-candidate",
-                mlineIndex, 0);
+                rtcbin,
+                "add-ice-candidate",
+                mlineIndex,
+                0);
         }
 
         return;
@@ -419,13 +426,17 @@ void GstWebRTCPeerBase::addIceCandidate(
 
         if(!resolvedCandidate.empty()) {
             g_signal_emit_by_name(
-                rtcbin, "add-ice-candidate",
-                mlineIndex, resolvedCandidate.c_str());
+                rtcbin,
+                "add-ice-candidate",
+                mlineIndex,
+                resolvedCandidate.c_str());
             return;
         }
     }
 
     g_signal_emit_by_name(
-        rtcbin, "add-ice-candidate",
-        mlineIndex, candidate.data());
+        rtcbin,
+        "add-ice-candidate",
+        mlineIndex,
+        candidate.data());
 }
