@@ -20,7 +20,8 @@ struct WebRTCPeer
         const WebRTCConfigPtr&, // FIXME? is it too expensive to use std::shared_ptr here?
         const PreparedCallback&,
         const IceCandidateCallback&,
-        const EosCallback&) noexcept = 0;
+        const EosCallback&,
+        const std::string& logContext) noexcept = 0;
 
     virtual const std::string& sdp() noexcept = 0;
 

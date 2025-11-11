@@ -434,13 +434,14 @@ void GstWebRTCPeer::prepare(
     const WebRTCConfigPtr& webRTCConfig,
     const PreparedCallback& prepared,
     const IceCandidateCallback& iceCandidate,
-    const EosCallback& eos) noexcept
+    const EosCallback& eos,
+    const std::string& logContext) noexcept
 {
     assert(!pipeline());
     if(pipeline())
         return;
 
-    GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos);
+    GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos, logContext);
 
     prepare(webRTCConfig);
 

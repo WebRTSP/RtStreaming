@@ -12,6 +12,7 @@
 #include <CxxPtr/GstWebRtcPtr.h>
 
 #include "Helpers.h"
+#include "LoggerWrapper.h"
 #include "GstPipelineOwner.h"
 
 
@@ -25,12 +26,15 @@ const bool GstWebRTCPeerBase::IsIceAgentAvailable = GstRtStreaming::IsIceAgentAv
 void GstWebRTCPeerBase::attachClient(
     const PreparedCallback& prepared,
     const IceCandidateCallback& iceCandidate,
-    const EosCallback& eos) noexcept
+    const EosCallback& eos,
+    const std::string& logContext) noexcept
 {
     assert(!_clientAttached);
     if(_clientAttached) {
         return;
     }
+
+    _log = MakeGstRtStreamingMtLogger(logContext);
 
     _preparedCallback = prepared;
     _iceCandidateCallback = iceCandidate;
@@ -138,34 +142,46 @@ void GstWebRTCPeerBase::setWebRtcBin(
     g_object_set(rtcbin, "bundle-policy", GST_WEBRTC_BUNDLE_POLICY_MAX_COMPAT, nullptr);
 
     auto onConnectionStateChangedCallback =
-        + [] (GstElement* rtcbin, GParamSpec*, gpointer) {
-            GstWebRTCPeerBase::onConnectionStateChanged(rtcbin);
+        + [] (GstElement* rtcbin, GParamSpec*, gpointer userData) {
+            GstWebRTCPeerBase::onConnectionStateChanged(
+                rtcbin,
+                static_cast<LoggerWrapper*>(userData)->logger);
         };
-    g_signal_connect(
+    g_signal_connect_data(
         rtcbin,
         "notify::connection-state",
         G_CALLBACK(onConnectionStateChangedCallback),
-        nullptr);
+        new LoggerWrapper { log() },
+        LoggerWrapper::Destroy,
+        G_CONNECT_DEFAULT);
 
     auto onSignalingStateChangedCallback =
-        + [] (GstElement* rtcbin, GParamSpec*, gpointer) {
-            GstWebRTCPeerBase::onSignalingStateChanged(rtcbin);
+        + [] (GstElement* rtcbin, GParamSpec*, gpointer userData) {
+            GstWebRTCPeerBase::onSignalingStateChanged(
+                rtcbin,
+                static_cast<LoggerWrapper*>(userData)->logger);
         };
-    g_signal_connect(
+    g_signal_connect_data(
         rtcbin,
         "notify::signaling-state",
         G_CALLBACK(onSignalingStateChangedCallback),
-        nullptr);
+        new LoggerWrapper { log() },
+        LoggerWrapper::Destroy,
+        G_CONNECT_DEFAULT);
 
     auto onIceConnectionStateChangedCallback =
-        + [] (GstElement* rtcbin, GParamSpec*, gpointer) {
-            GstWebRTCPeerBase::onIceConnectionStateChanged(rtcbin);
+        + [] (GstElement* rtcbin, GParamSpec*, gpointer userData) {
+            GstWebRTCPeerBase::onIceConnectionStateChanged(
+                rtcbin,
+                static_cast<LoggerWrapper*>(userData)->logger);
         };
-    g_signal_connect(
+    g_signal_connect_data(
         rtcbin,
         "notify::ice-connection-state",
         G_CALLBACK(onIceConnectionStateChangedCallback),
-        nullptr);
+        new LoggerWrapper { log() },
+        LoggerWrapper::Destroy,
+        G_CONNECT_DEFAULT);
 
     if(IsIceAgentAvailable) {
         GstObject* iceAgent = nullptr;
@@ -186,29 +202,34 @@ void GstWebRTCPeerBase::setWebRtcBin(
             if(niceAgent) {
                 GObjectPtr niceAgentPtr(G_OBJECT(niceAgent));
 
+                struct CallbackData {
+                    GstElement* rtcbin;
+                    const std::shared_ptr<spdlog::logger> logger;
+                };
+
                 auto onSelectedPairCallback =
                     + [] (
-                        NiceAgent* agent,
+                        NiceAgent*,
                         guint streamId, guint componentId,
                         NiceCandidate* localCandidate,
                         NiceCandidate* remoteCandidate,
                         gpointer userData)
                     {
-                        GstElement* rtcbin = static_cast<GstElement*>(userData);
-                        postLog(
-                            rtcbin, spdlog::level::debug,
-                            fmt::format(
-                                "Selected ICE Pair ({}/{}): Local \"{}\" - Remote \"{}\"",
-                                streamId, componentId,
-                                NiceCandidateToString(*localCandidate),
-                                NiceCandidateToString(*remoteCandidate)));
+                        CallbackData* data = static_cast<CallbackData*>(userData);
+                        data->logger->debug(
+                            "Selected ICE Pair ({}/{}): Local \"{}\" - Remote \"{}\"",
+                            streamId, componentId,
+                            NiceCandidateToString(*localCandidate),
+                            NiceCandidateToString(*remoteCandidate));
                     };
 
-                g_signal_connect(
+                g_signal_connect_data(
                     niceAgent,
                     "new-selected-pair-full",
                     G_CALLBACK(onSelectedPairCallback),
-                    rtcbin);
+                    new CallbackData { rtcbin, log() },
+                    [] (gpointer userData, GClosure*) { delete static_cast<CallbackData*>(userData); },
+                    G_CONNECT_DEFAULT);
             }
         }
     }
@@ -251,14 +272,6 @@ void GstWebRTCPeerBase::onEos(bool /*error*/)
 }
 
 // will be called from streaming thread
-void GstWebRTCPeerBase::postLog(
-    GstElement* element,
-    spdlog::level::level_enum level,
-    const std::string& logMessage)
-{
-    GstPipelineOwner::PostLog(element, level, logMessage);
-}
-
 void GstWebRTCPeerBase::setIceServers(const WebRTCConfig& webRTCConfig)
 {
     GstElement* rtcbin = webRtcBin();
@@ -278,12 +291,14 @@ void GstWebRTCPeerBase::setIceServers(const WebRTCConfig& webRTCConfig)
                     gboolean ret;
                     g_signal_emit_by_name(
                         rtcbin,
-                        "add-turn-server", iceServer.c_str(),
+                        "add-turn-server",
+                        iceServer.c_str(),
                         &ret);
                 } else {
                     g_object_set(
                         rtcbin,
-                        "turn-server", iceServer.c_str(),
+                        "turn-server",
+                        iceServer.c_str(),
                         nullptr);
                 }
                 break;
@@ -298,7 +313,9 @@ void GstWebRTCPeerBase::setIceServers(const WebRTCConfig& webRTCConfig)
 }
 
 // will be called from streaming thread
-void GstWebRTCPeerBase::onConnectionStateChanged(GstElement* rtcbin)
+void GstWebRTCPeerBase::onConnectionStateChanged(
+    GstElement* rtcbin,
+    const std::shared_ptr<spdlog::logger>& log)
 {
     GstWebRTCPeerConnectionState state = GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED;
     g_object_get(rtcbin, "connection-state", &state, NULL);
@@ -326,11 +343,13 @@ void GstWebRTCPeerBase::onConnectionStateChanged(GstElement* rtcbin)
     }
 
     if(stateName)
-        postLog(rtcbin, spdlog::level::debug, fmt::format("Connection State changed: \"{}\"", stateName));
+        log->debug("Connection State changed: \"{}\"", stateName);
 }
 
 // will be called from streaming thread
-void GstWebRTCPeerBase::onSignalingStateChanged(GstElement* rtcbin)
+void GstWebRTCPeerBase::onSignalingStateChanged(
+    GstElement* rtcbin,
+    const std::shared_ptr<spdlog::logger>& log)
 {
     GstWebRTCSignalingState state = GST_WEBRTC_SIGNALING_STATE_CLOSED;
     g_object_get(rtcbin, "signaling-state", &state, NULL);
@@ -358,11 +377,13 @@ void GstWebRTCPeerBase::onSignalingStateChanged(GstElement* rtcbin)
     }
 
     if(stateName)
-        postLog(rtcbin, spdlog::level::debug, fmt::format("Signaling State changed: \"{}\"", stateName));
+        log->debug("Signaling State changed: \"{}\"", stateName);
 }
 
 // will be called from streaming thread
-void GstWebRTCPeerBase::onIceConnectionStateChanged(GstElement* rtcbin)
+void GstWebRTCPeerBase::onIceConnectionStateChanged(
+    GstElement* rtcbin,
+    const std::shared_ptr<spdlog::logger>& log)
 {
     GstWebRTCICEConnectionState state = GST_WEBRTC_ICE_CONNECTION_STATE_CLOSED;
     g_object_get(rtcbin, "ice-connection-state", &state, NULL);
@@ -393,7 +414,7 @@ void GstWebRTCPeerBase::onIceConnectionStateChanged(GstElement* rtcbin)
     }
 
     if(stateName)
-        postLog(rtcbin, spdlog::level::debug, fmt::format("Ice Connection State changed: \"{}\"", stateName));
+        log->debug("Ice Connection State changed: \"{}\"", stateName);
 }
 
 const std::string& GstWebRTCPeerBase::sdp() noexcept

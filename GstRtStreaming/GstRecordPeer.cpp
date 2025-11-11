@@ -362,10 +362,11 @@ void GstRecordPeer::prepare(
     const WebRTCConfigPtr& webRTCConfig,
     const PreparedCallback& prepared,
     const IceCandidateCallback& iceCandidate,
-    const EosCallback& eos) noexcept
+    const EosCallback& eos,
+    const std::string& logContext) noexcept
 {
     setWebRtcBin(*webRTCConfig, std::move(_rtcbinPtr));
-    GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos);
+    GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos, logContext);
 
     assert(pipeline());
     if(!pipeline()) {

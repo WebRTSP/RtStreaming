@@ -22,7 +22,8 @@ public:
         const WebRTCConfigPtr&,
         const PreparedCallback&,
         const IceCandidateCallback&,
-        const EosCallback&) noexcept override;
+        const EosCallback&,
+        const std::string& logContext) noexcept override;
 
     void setRemoteSdp(const std::string& sdp) noexcept override;
 

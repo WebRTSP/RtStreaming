@@ -31,7 +31,8 @@ protected:
     void attachClient(
         const PreparedCallback&,
         const IceCandidateCallback&,
-        const EosCallback&) noexcept;
+        const EosCallback&,
+        const std::string& logContext) noexcept;
     bool clientAttached() const noexcept;
 
     void setPipeline(GstElement*) noexcept;
@@ -42,14 +43,15 @@ protected:
     virtual void setWebRtcBin(const WebRTCConfig&, GstElementPtr&&) noexcept;
     GstElement* webRtcBin() const noexcept;
 
-    static void onConnectionStateChanged(GstElement* rtcbin);
-    static void onSignalingStateChanged(GstElement* rtcbin);
-    static void onIceConnectionStateChanged(GstElement* rtcbin);
-
-    static void postLog(
-        GstElement*,
-        spdlog::level::level_enum,
-        const std::string& message);
+    static void onConnectionStateChanged(
+        GstElement* rtcbin,
+        const std::shared_ptr<spdlog::logger>&);
+    static void onSignalingStateChanged(
+        GstElement* rtcbin,
+        const std::shared_ptr<spdlog::logger>&);
+    static void onIceConnectionStateChanged(
+        GstElement* rtcbin,
+        const std::shared_ptr<spdlog::logger>&);
 
     void onIceCandidate(
         unsigned mlineIndex,
@@ -62,7 +64,7 @@ private:
     void setIceServers(const WebRTCConfig&);
 
 private:
-    const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
+    std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
 
     bool _clientAttached = false;
 

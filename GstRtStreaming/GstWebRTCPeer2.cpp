@@ -99,6 +99,12 @@ GstWebRTCPeer2::~GstWebRTCPeer2()
     g_signal_handler_disconnect(_messageProxy, _messageHandlerId);
     g_signal_handler_disconnect(_messageProxy, _eosHandlerId);
 
+    GstElement* rtcbin = webRtcBin();
+    if(rtcbin) {
+        if(_onNegotiationNeededHandlerId)
+            g_signal_handler_disconnect(rtcbin, _onNegotiationNeededHandlerId);
+    }
+
     g_object_unref(_messageProxy);
 
     if(!_teePtr)
@@ -262,6 +268,37 @@ GstElement* GstWebRTCPeer2::queue() const noexcept
     return _queuePtr.get();
 }
 
+namespace {
+
+struct PeerData
+{
+    PeerData(
+        MessageProxy* messageProxy,
+        GstElement* rtcBin,
+        const std::shared_ptr<spdlog::logger>& logger,
+        const char* name
+    ) :
+        messageProxy(static_cast<MessageProxy*>(g_object_ref(messageProxy))),
+        rtcBin(rtcBin),
+        logger(logger)
+    {
+    }
+    ~PeerData() {
+        g_object_unref(messageProxy);
+    }
+
+    static void Destroy(gpointer data)
+        { delete static_cast<PeerData*>(data); }
+    static void Destroy(gpointer userData, GClosure*)
+        { delete static_cast<PeerData*>(userData); }
+
+    MessageProxy* messageProxy;
+    GstElement* rtcBin;
+    std::shared_ptr<spdlog::logger> logger;
+};
+
+}
+
 void GstWebRTCPeer2::prepareWebRtcBin() noexcept
 {
     GstElement* rtcbin = webRtcBin();
@@ -271,14 +308,16 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
         return;
 
     auto onNegotiationNeededCallback =
-        + [] (GstElement* rtcbin, MessageProxy* messageProxy) {
-            return GstWebRTCPeer2::onNegotiationNeeded(messageProxy, rtcbin);
+        + [] (GstElement* rtcbin, gpointer* userData) {
+            PeerData* data = reinterpret_cast<PeerData*>(userData);
+            return GstWebRTCPeer2::onNegotiationNeeded(data->messageProxy, rtcbin, data->logger);
         };
-    g_signal_connect_object(
+    _onNegotiationNeededHandlerId = g_signal_connect_data(
         rtcbin,
         "on-negotiation-needed",
         G_CALLBACK(onNegotiationNeededCallback),
-        _messageProxy,
+        new PeerData(_messageProxy, rtcbin, log(), "on-negotiation-needed"),
+        PeerData::Destroy,
         G_CONNECT_DEFAULT);
 
     if(!IceGatheringStateBroken) {
@@ -310,22 +349,17 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
 void GstWebRTCPeer2::onOfferCreated(
     MessageProxy* messageProxy,
     GstElement* rtcbin,
+    const std::shared_ptr<spdlog::logger>& log,
     GstPromise* promise)
 {
     GstPromisePtr promisePtr(promise);
 
     switch(gst_promise_wait(promise)) {
     case GST_PROMISE_RESULT_INTERRUPTED:
-        GstPipelineOwner::PostLog(
-            rtcbin,
-            spdlog::level::debug,
-            "\"create-offer\" interrupted");
+        log->debug("\"create-offer\" interrupted");
         return;
     case GST_PROMISE_RESULT_EXPIRED:
-        GstPipelineOwner::PostLog(
-            rtcbin,
-            spdlog::level::debug,
-            "\"create-offer\" expired");
+        log->debug("\"create-offer\" expired");
         return;
     case GST_PROMISE_RESULT_PENDING:
     case GST_PROMISE_RESULT_REPLIED:
@@ -339,10 +373,7 @@ void GstWebRTCPeer2::onOfferCreated(
         &sessionDescription, NULL);
 
     if(!sessionDescription) {
-        GstPipelineOwner::PostLog(
-            rtcbin,
-            spdlog::level::err,
-            "No offer from \"create-offer\"");
+        log->error("No offer from \"create-offer\"");
         postEos(messageProxy, rtcbin, true);
         return;
     }
@@ -356,42 +387,22 @@ void GstWebRTCPeer2::onOfferCreated(
     postSdp(messageProxy, rtcbin, sdpPtr.get());
 }
 
-namespace {
-
-struct PeerData
-{
-    PeerData(MessageProxy* messageProxy, GstElement* rtcBin) :
-        messageProxy(static_cast<MessageProxy*>(g_object_ref(messageProxy))),
-        rtcBin(rtcBin) {}
-    ~PeerData() {
-        g_object_unref(messageProxy);
-    }
-
-    static void destroy(void* data) {
-        delete reinterpret_cast<PeerData*>(data);
-    }
-
-    MessageProxy* messageProxy;
-    GstElement* rtcBin;
-};
-
-}
-
 // will be called from streaming thread
 void GstWebRTCPeer2::onNegotiationNeeded(
     MessageProxy* messageProxy,
-    GstElement* rtcbin)
+    GstElement* rtcbin,
+    const std::shared_ptr<spdlog::logger>& log)
 {
     auto onOfferCreatedCallback =
         + [] (GstPromise* promise, gpointer userData) {
             PeerData* data = reinterpret_cast<PeerData*>(userData);
-            GstWebRTCPeer2::onOfferCreated(data->messageProxy, data->rtcBin, promise);
+            GstWebRTCPeer2::onOfferCreated(data->messageProxy, data->rtcBin, data->logger, promise);
         };
 
     GstPromise* promise = gst_promise_new_with_change_func(
         onOfferCreatedCallback,
-        new PeerData(messageProxy, rtcbin),
-        &PeerData::destroy);
+        new PeerData(messageProxy, rtcbin, log, "create-offer"),
+        PeerData::Destroy);
     g_signal_emit_by_name(rtcbin, "create-offer", nullptr, promise);
 }
 
@@ -399,22 +410,17 @@ void GstWebRTCPeer2::onNegotiationNeeded(
 void GstWebRTCPeer2::onAnswerCreated(
     MessageProxy* messageProxy,
     GstElement* rtcbin,
+    const std::shared_ptr<spdlog::logger>& log,
     GstPromise* promise)
 {
     GstPromisePtr promisePtr(promise);
 
     switch(gst_promise_wait(promise)) {
     case GST_PROMISE_RESULT_INTERRUPTED:
-        GstPipelineOwner::PostLog(
-            rtcbin,
-            spdlog::level::debug,
-            "\"create-answer\" interrupted");
+        log->debug("\"create-answer\" interrupted");
         return;
     case GST_PROMISE_RESULT_EXPIRED:
-        GstPipelineOwner::PostLog(
-            rtcbin,
-            spdlog::level::debug,
-            "\"create-answer\" expired");
+        log->debug("\"create-answer\" expired");
         return;
     case GST_PROMISE_RESULT_PENDING:
     case GST_PROMISE_RESULT_REPLIED:
@@ -429,10 +435,7 @@ void GstWebRTCPeer2::onAnswerCreated(
     GstWebRTCSessionDescriptionPtr sessionDescriptionPtr(sessionDescription);
 
     if(!sessionDescription) {
-        GstPipelineOwner::PostLog(
-            rtcbin,
-            spdlog::level::err,
-            "No answer from \"create-answer\"");
+        log->error("No answer from \"create-answer\"");
         postEos(messageProxy, rtcbin, true);
         return;
     }
@@ -460,22 +463,17 @@ void GstWebRTCPeer2::onIceGatheringStateChanged(
 void GstWebRTCPeer2::onSetRemoteDescription(
     MessageProxy* messageProxy,
     GstElement* rtcbin,
+    const std::shared_ptr<spdlog::logger>& log,
     GstPromise* promise)
 {
     GstPromisePtr promisePtr(promise);
 
     switch(gst_promise_wait(promise)) {
     case GST_PROMISE_RESULT_INTERRUPTED:
-        GstPipelineOwner::PostLog(
-            rtcbin,
-            spdlog::level::debug,
-            "\"set-remote-description\" interrupted");
+        log->debug("\"set-remote-description\" interrupted");
         return;
     case GST_PROMISE_RESULT_EXPIRED:
-        GstPipelineOwner::PostLog(
-            rtcbin,
-            spdlog::level::debug,
-            "\"set-remote-description\" expired");
+        log->debug("\"set-remote-description\" expired");
         return;
     case GST_PROMISE_RESULT_PENDING:
     case GST_PROMISE_RESULT_REPLIED:
@@ -497,12 +495,14 @@ void GstWebRTCPeer2::onSetRemoteDescription(
                 return GstWebRTCPeer2::onAnswerCreated(
                     peerData->messageProxy,
                     peerData->rtcBin,
+                    peerData->logger,
                     promise);
             };
+
         GstPromise* promise = gst_promise_new_with_change_func(
             onAnswerCreatedCallback,
-            new PeerData(messageProxy, rtcbin),
-            &PeerData::destroy);
+            new PeerData(messageProxy, rtcbin, log, "create-answer"),
+            PeerData::Destroy);
         g_signal_emit_by_name(rtcbin, "create-answer", nullptr, promise);
 
         break;
@@ -538,15 +538,20 @@ void GstWebRTCPeer2::setRemoteSdp(const std::string& sdp) noexcept
             return GstWebRTCPeer2::onSetRemoteDescription(
                 data->messageProxy,
                 data->rtcBin,
+                data->logger,
                 promise);
         };
 
     GstPromise* promise = gst_promise_new_with_change_func(
         onSetRemoteDescriptionCallback,
-        new PeerData(_messageProxy, rtcbin),
-        &PeerData::destroy);
+        new PeerData(_messageProxy, rtcbin, log(), "set-remote-description"),
+        PeerData::Destroy);
 
-    g_signal_emit_by_name(rtcbin, "set-remote-description", sessionDescription, promise);
+    g_signal_emit_by_name(
+        rtcbin,
+        "set-remote-description",
+        sessionDescription,
+        promise);
 }
 
 namespace {
@@ -664,11 +669,12 @@ void GstWebRTCPeer2::prepare(
     const WebRTCConfigPtr& webRTCConfig,
     const PreparedCallback& prepared,
     const IceCandidateCallback& iceCandidate,
-    const EosCallback& eos) noexcept
+    const EosCallback& eos,
+    const std::string& logContext) noexcept
 {
     _webRTCConfig = webRTCConfig;
 
-    GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos);
+    GstWebRTCPeerBase::attachClient(prepared, iceCandidate, eos, logContext);
 
     internalPrepare();
 }

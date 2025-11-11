@@ -19,7 +19,8 @@ public:
         const WebRTCConfigPtr&,
         const PreparedCallback&,
         const IceCandidateCallback&,
-        const EosCallback&) noexcept override;
+        const EosCallback&,
+        const std::string& logContext) noexcept override;
 
     void setRemoteSdp(const std::string& sdp) noexcept override;
 
@@ -30,15 +31,13 @@ protected:
     void onMessage(GstMessage*);
 
 private:
-    const std::shared_ptr<spdlog::logger>& log()
-        { return _log; }
-
     void play() noexcept override {}
     void stop() noexcept override {}
 
     static void onNegotiationNeeded(
         MessageProxy*,
-        GstElement* rtcbin);
+        GstElement* rtcbin,
+        const std::shared_ptr<spdlog::logger>& log);
     static void onIceGatheringStateChanged(
         MessageProxy*,
         GstElement* rtcbin);
@@ -60,26 +59,29 @@ private:
     static void onOfferCreated(
         MessageProxy*,
         GstElement* rtcbin,
+        const std::shared_ptr<spdlog::logger>&,
         GstPromise*);
     static void onAnswerCreated(
         MessageProxy*,
         GstElement* rtcbin,
+        const std::shared_ptr<spdlog::logger>&,
         GstPromise*);
     static void onSetRemoteDescription(
         MessageProxy*,
         GstElement* rtcbin,
+        const std::shared_ptr<spdlog::logger>&,
         GstPromise*);
 
     void internalPrepare() noexcept;
     void prepareWebRtcBin() noexcept;
 
 private:
-    const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
-
     MessageProxy* _messageProxy;
     gulong _teeHandlerId = 0;
     gulong _messageHandlerId = 0;
     gulong _eosHandlerId = 0;
+
+    gulong _onNegotiationNeededHandlerId = 0;
 
     WebRTCConfigPtr _webRTCConfig;
 
