@@ -50,7 +50,7 @@ protected:
     void destroyPeers() noexcept;
 
 private:
-    const std::shared_ptr<spdlog::logger>& log()
+    const std::shared_ptr<spdlog::logger>& log() const
         { return _log; }
 
     gboolean onBusMessage(GstMessage*);

@@ -25,7 +25,7 @@ protected:
     static const bool IsMinMaxRtpPortAvailable;
     static const bool IsIceAgentAvailable;
 
-    const std::shared_ptr<spdlog::logger>& log()
+    const std::shared_ptr<spdlog::logger>& log() const
         { return _log; }
 
     void attachClient(
