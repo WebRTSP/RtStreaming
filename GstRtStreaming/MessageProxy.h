@@ -6,7 +6,7 @@
 G_BEGIN_DECLS
 
 #define MESSAGE_PROXY_TYPE message_proxy_get_type()
-G_DECLARE_FINAL_TYPE(MessageProxy, message_proxy, ,MESSAGE_PROXY, GObject)
+G_DECLARE_FINAL_TYPE(MessageProxy, message_proxy, , MESSAGE_PROXY, GObject)
 
 MessageProxy* message_proxy_new();
 
