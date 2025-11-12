@@ -64,7 +64,7 @@ private:
     void setIceServers(const WebRTCConfig&);
 
 private:
-    std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
+    std::shared_ptr<spdlog::logger> _log = MakeGstRtStreamingMtLogger("GstWebRTCPeer");
 
     bool _clientAttached = false;
 
