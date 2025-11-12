@@ -4,8 +4,28 @@
 #include <spdlog/sinks/stdout_sinks.h>
 
 
+namespace {
+
 static std::shared_ptr<spdlog::logger> Logger;
 
+void ConfigureLogger(const std::shared_ptr<spdlog::logger>& logger, const std::string& context)
+{
+    logger->set_level(GstRtStreamingLog()->level());
+
+    if(!context.empty()) {
+#ifdef SNAPCRAFT_BUILD
+        logger->set_pattern("[" + context + "] [%n] [%l] %v");
+#else
+        logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [" + context + "] [%n] [%l] %v");
+#endif
+    } else {
+#ifdef SNAPCRAFT_BUILD
+        logger->set_pattern("[%n] [%l] %v");
+#endif
+    }
+}
+
+}
 
 void InitGstRtStreamingLogger(spdlog::level::level_enum level)
 {
@@ -32,30 +52,16 @@ const std::shared_ptr<spdlog::logger>& GstRtStreamingLog()
     return Logger;
 }
 
-std::shared_ptr<spdlog::logger> MakeGstRtStreamingMtLogger(const std::string& context)
+std::shared_ptr<spdlog::logger> MakeGstRtStreamingMtLogger(
+    const std::string& name,
+    const std::string& context)
 {
-    const std::shared_ptr<spdlog::logger>& logger = GstRtStreamingLog();
-
     // have to go long road to avoid issues with duplicated names in loggers registry
     std::shared_ptr<spdlog::logger> mtLogger = std::make_shared<spdlog::logger>(
-        logger->name(),
+        !name.empty() ? name : GstRtStreamingLog()->name(),
         std::make_shared<spdlog::sinks::stdout_sink_mt>());
-    mtLogger->set_level(logger->level());
 
-    if(!context.empty()) {
-#ifdef SNAPCRAFT_BUILD
-        mtLogger->set_pattern("[" + context + "] [%n] [%l] %v");
-#else
-        mtLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [" + context + "] [%n] [%l] %v");
-#endif
-    } else {
-#ifdef SNAPCRAFT_BUILD
-        mtLogger->set_pattern("[%n] [%l] %v");
-#else
-        mtLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v");
-#endif
-
-    }
+    ConfigureLogger(mtLogger, context);
 
     return mtLogger;
 }

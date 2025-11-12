@@ -34,7 +34,7 @@ void GstWebRTCPeerBase::attachClient(
         return;
     }
 
-    _log = MakeGstRtStreamingMtLogger(logContext);
+    _log = MakeGstRtStreamingMtLogger(_log->name(), logContext);
 
     _preparedCallback = prepared;
     _iceCandidateCallback = iceCandidate;
