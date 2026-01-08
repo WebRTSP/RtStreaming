@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <set>
 #include <unordered_set>
 
 #include "CxxPtr/GstPtr.h"
@@ -75,6 +76,6 @@ private:
 
     bool _prerolled = false;
 
-    std::deque<MessageProxyPtr> _waitingPeers;
+    std::set<MessageProxyPtr, std::less<>> _waitingPeers;
     std::unordered_set<MessageProxy*> _peers;
 };

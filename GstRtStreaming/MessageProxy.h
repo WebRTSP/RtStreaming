@@ -27,4 +27,8 @@ typedef
         MessageProxy,
         MessageProxyUnref> MessageProxyPtr;
 
+inline bool operator == (const MessageProxyPtr& l, const MessageProxy* r) { return l.get() == r; }
+inline bool operator < (const MessageProxyPtr& l, const MessageProxy* r) { return l.get() < r; }
+inline bool operator < (const MessageProxy* l, const MessageProxyPtr& r) { return l < r.get(); }
+
 #endif
