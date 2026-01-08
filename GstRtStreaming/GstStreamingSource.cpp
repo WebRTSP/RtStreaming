@@ -331,7 +331,8 @@ void GstStreamingSource::onPeerAttached() noexcept
 
 void GstStreamingSource::onLastPeerDetached() noexcept
 {
-    cleanup();
+    if(_peers.empty()) // some new peer can appear while message traveled between threads
+        cleanup();
 }
 
 void GstStreamingSource::onPeerDestroyed(MessageProxy* messageProxy)
