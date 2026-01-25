@@ -192,7 +192,7 @@ void GstRecordStreamer::srcPadAdded(
                     const std::string fileName = std::to_string(timestamp) + ".mp4";
                     std::string locationTemplate = (data.recordingsDir / fileName).string();
 
-                    GstPipelineOwner::PostLog(
+                    PostLog(
                         splitmuxsink,
                         spdlog::level::info,
                         fmt::format("Saving to \"{}\"...", fileName));

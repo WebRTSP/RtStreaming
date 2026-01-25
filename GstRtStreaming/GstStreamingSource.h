@@ -8,12 +8,11 @@
 
 #include "../WebRTCPeer.h"
 
-#include "GstPipelineOwner.h"
 #include "Log.h"
 #include "MessageProxy.h"
 
 
-class GstStreamingSource: public GstPipelineOwner
+class GstStreamingSource
 {
 public:
     virtual ~GstStreamingSource();
@@ -22,6 +21,9 @@ public:
     virtual std::unique_ptr<WebRTCPeer> createRecordPeer() noexcept { return nullptr; }
 
 protected:
+    // thread safe
+    static void PostLog(GstElement*, spdlog::level::level_enum, const std::string& message);
+
     GstStreamingSource();
 
     void onEos(bool error);

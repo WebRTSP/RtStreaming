@@ -13,7 +13,6 @@
 
 #include "Helpers.h"
 #include "LoggerWrapper.h"
-#include "GstPipelineOwner.h"
 
 
 const bool GstWebRTCPeerBase::MDNSResolveRequired = GstRtStreaming::IsMDNSResolveRequired();

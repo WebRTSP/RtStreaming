@@ -10,7 +10,6 @@
 #include <CxxPtr/GstWebRtcPtr.h>
 
 #include "Helpers.h"
-#include "GstPipelineOwner.h"
 
 
 GstWebRTCPeer2::GstWebRTCPeer2(MessageProxy* messageProxy) :
