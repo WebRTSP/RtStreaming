@@ -37,10 +37,6 @@ void GstStreamingSource::PostLog(
     gst_bus_post(bus, message);
 }
 
-GstStreamingSource::GstStreamingSource()
-{
-}
-
 GstStreamingSource::~GstStreamingSource()
 {
     assert(_peers.empty());

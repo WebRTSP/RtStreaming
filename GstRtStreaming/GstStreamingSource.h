@@ -24,7 +24,7 @@ protected:
     // thread safe
     static void PostLog(GstElement*, spdlog::level::level_enum, const std::string& message);
 
-    GstStreamingSource();
+    GstStreamingSource() = default;
 
     void onEos(bool error);
 
