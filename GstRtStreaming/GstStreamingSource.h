@@ -25,6 +25,7 @@ protected:
     static void PostLog(GstElement*, spdlog::level::level_enum, const std::string& message);
 
     GstStreamingSource() = default;
+    GstStreamingSource& operator= (GstStreamingSource&) = delete;
 
     void onEos(bool error);
 
