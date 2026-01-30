@@ -13,7 +13,7 @@ class GstRecordPeer : public GstWebRTCPeerBase
 {
 public:
     GstRecordPeer(
-        MessageProxy*,
+        MessageProxyPtr&& messageProxyPtr,
         GstElement* pipeline,
         GstElement* rtcbin);
     ~GstRecordPeer();
@@ -68,7 +68,7 @@ private:
     void internalPrepare() noexcept;
 
 private:
-    MessageProxy* _messageProxy;
+    MessageProxyPtr _messageProxyPtr;
     gulong _messageHandlerId = 0;
     gulong _eosHandlerId = 0;
 

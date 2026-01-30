@@ -214,8 +214,8 @@ void GstStreamingSource::onTeeAvailable(GstElement* tee)
 
     if(teePipelinePtr == _pipelinePtr) { // однако за время пути, собачка могла подрасти...
         _teePtr.reset(GST_ELEMENT_CAST(gst_object_ref(tee)));
-        for(const MessageProxyPtr& proxyPtr: _waitingPeers) {
-            g_signal_emit_by_name(proxyPtr.get(), "tee", tee);
+        for(MessageProxy* proxy: _waitingPeers) {
+            g_signal_emit_by_name(proxy, "tee", tee);
         }
         _waitingPeers.clear();
     }
@@ -383,11 +383,11 @@ std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
     _peers.insert(messageProxy);
 
     std::unique_ptr<GstWebRTCPeer2> peerPtr =
-        std::make_unique<GstWebRTCPeer2>(messageProxy);
+        std::make_unique<GstWebRTCPeer2>(std::move(messageProxyPtr));
     if(tee()) {
         g_signal_emit_by_name(messageProxy, "tee", tee());
     } else {
-        _waitingPeers.emplace(std::move(messageProxyPtr));
+        _waitingPeers.emplace(messageProxy);
     }
 
     return std::move(peerPtr);

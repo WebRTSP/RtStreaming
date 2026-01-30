@@ -12,7 +12,7 @@
 class GstWebRTCPeer2 : public GstWebRTCPeerBase
 {
 public:
-    GstWebRTCPeer2(MessageProxy*);
+    GstWebRTCPeer2(MessageProxyPtr&&);
     ~GstWebRTCPeer2();
 
     void prepare(
@@ -76,7 +76,7 @@ private:
     void prepareWebRtcBin() noexcept;
 
 private:
-    MessageProxy* _messageProxy;
+    MessageProxyPtr _messageProxyPtr;
     gulong _teeHandlerId = 0;
     gulong _messageHandlerId = 0;
     gulong _eosHandlerId = 0;

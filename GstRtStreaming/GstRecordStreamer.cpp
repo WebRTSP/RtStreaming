@@ -400,7 +400,7 @@ std::unique_ptr<WebRTCPeer> GstRecordStreamer::createRecordPeer() noexcept
         }, this);
 
     std::unique_ptr<GstRecordPeer> recordPeerPtr =
-        std::make_unique<GstRecordPeer>(_recordPeerProxy, pipeline(), webRtcBin());
+        std::make_unique<GstRecordPeer>(std::move(messageProxyPtr), pipeline(), webRtcBin());
 
     return std::move(recordPeerPtr);
 }

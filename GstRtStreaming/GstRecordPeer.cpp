@@ -17,12 +17,14 @@
 
 
 GstRecordPeer::GstRecordPeer(
-    MessageProxy* messageProxy,
+    MessageProxyPtr&& messageProxyPtr,
     GstElement* pipeline,
     GstElement* rtcbin) :
-    _messageProxy(_MESSAGE_PROXY(g_object_ref(messageProxy))),
+    _messageProxyPtr(std::move(messageProxyPtr)),
     _rtcbinPtr(GstElementPtr(GST_ELEMENT(gst_object_ref(rtcbin))))
 {
+    MessageProxy* messageProxy = _messageProxyPtr.get();
+
     setPipeline(pipeline);
 
     auto onMessageCallback =
@@ -31,7 +33,7 @@ GstRecordPeer::GstRecordPeer(
             return owner->onMessage(message);
         };
     _messageHandlerId = g_signal_connect(
-        _messageProxy,
+        messageProxy,
         "message",
         G_CALLBACK(onMessageCallback),
         this);
@@ -42,7 +44,7 @@ GstRecordPeer::GstRecordPeer(
             return owner->onEos(error);
         };
     _eosHandlerId = g_signal_connect(
-        _messageProxy,
+        messageProxy,
         "eos",
         G_CALLBACK(onEosCallback),
         this);
@@ -50,14 +52,16 @@ GstRecordPeer::GstRecordPeer(
 
 GstRecordPeer::~GstRecordPeer()
 {
-    g_signal_handler_disconnect(_messageProxy, _messageHandlerId);
-    g_signal_handler_disconnect(_messageProxy, _eosHandlerId);
+    MessageProxy* messageProxy = _messageProxyPtr.get();
+
+    g_signal_handler_disconnect(messageProxy, _messageHandlerId);
+    g_signal_handler_disconnect(messageProxy, _eosHandlerId);
 
     GstElement* rtcbin = webRtcBin();
     g_signal_handler_disconnect(rtcbin, _iceGatheringStateHandlerId);
     g_signal_handler_disconnect(rtcbin, _iceCandidateHandlerId);
 
-    g_object_unref(_messageProxy);
+    _messageProxyPtr.reset();
 }
 
 void GstRecordPeer::onMessage(GstMessage* message)
@@ -283,6 +287,7 @@ void GstRecordPeer::onSetRemoteDescription(
 
 void GstRecordPeer::setRemoteSdp(const std::string& sdp) noexcept
 {
+    MessageProxy* messageProxy = _messageProxyPtr.get();
     GstElement* rtcbin = webRtcBin();
 
     GstSDPMessage* sdpMessage;
@@ -311,14 +316,16 @@ void GstRecordPeer::setRemoteSdp(const std::string& sdp) noexcept
 
     GstPromise* promise = gst_promise_new_with_change_func(
         onSetRemoteDescriptionCallback,
-        new PeerData(_messageProxy, rtcbin),
-         &PeerData::destroy);
+        new PeerData(messageProxy, rtcbin),
+        &PeerData::destroy);
 
     g_signal_emit_by_name(rtcbin, "set-remote-description", sessionDescription, promise);
 }
 
 void GstRecordPeer::internalPrepare() noexcept
 {
+    MessageProxy* messageProxy = _messageProxyPtr.get();
+
     GstElement* pipeline = this->pipeline();
     assert(pipeline);
 
@@ -334,7 +341,7 @@ void GstRecordPeer::internalPrepare() noexcept
             rtcbin,
             "notify::ice-gathering-state",
             G_CALLBACK(onIceGatheringStateChangedCallback),
-            _messageProxy,
+            messageProxy,
             G_CONNECT_DEFAULT);
     }
 
@@ -346,7 +353,7 @@ void GstRecordPeer::internalPrepare() noexcept
         rtcbin,
         "on-ice-candidate",
         G_CALLBACK(onIceCandidateCallback),
-        _messageProxy,
+        messageProxy,
         G_CONNECT_DEFAULT);
 
     GstCapsPtr capsPtr(gst_caps_from_string("application/x-rtp, media=video"));

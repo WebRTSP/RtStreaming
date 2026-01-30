@@ -12,9 +12,11 @@
 #include "Helpers.h"
 
 
-GstWebRTCPeer2::GstWebRTCPeer2(MessageProxy* messageProxy) :
-    _messageProxy(_MESSAGE_PROXY(g_object_ref(messageProxy)))
+GstWebRTCPeer2::GstWebRTCPeer2(MessageProxyPtr&& messageProxyPtr) :
+    _messageProxyPtr(std::move(messageProxyPtr))
 {
+    MessageProxy* messageProxy = _messageProxyPtr.get();
+
     auto onTeeCallback =
         + [] (MessageProxy*, GstElement* tee, gpointer userData) {
             GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
@@ -23,7 +25,7 @@ GstWebRTCPeer2::GstWebRTCPeer2(MessageProxy* messageProxy) :
             owner->_teePtr.reset(GST_ELEMENT(g_object_ref(tee))),
             owner->internalPrepare();
         };
-    _teeHandlerId = g_signal_connect(_messageProxy, "tee", G_CALLBACK(onTeeCallback), this);
+    _teeHandlerId = g_signal_connect(messageProxy, "tee", G_CALLBACK(onTeeCallback), this);
 
     auto onMessageCallback =
         + [] (MessageProxy*, GstMessage* message, gpointer userData) {
@@ -31,7 +33,7 @@ GstWebRTCPeer2::GstWebRTCPeer2(MessageProxy* messageProxy) :
             return owner->onMessage(message);
         };
     _messageHandlerId = g_signal_connect(
-        _messageProxy,
+        messageProxy,
         "message",
         G_CALLBACK(onMessageCallback),
         this);
@@ -41,7 +43,7 @@ GstWebRTCPeer2::GstWebRTCPeer2(MessageProxy* messageProxy) :
             GstWebRTCPeer2* owner = static_cast<GstWebRTCPeer2*>(userData);
             return owner->onEos(error);
         };
-    _eosHandlerId = g_signal_connect(_messageProxy, "eos", G_CALLBACK(onEosCallback), this);
+    _eosHandlerId = g_signal_connect(messageProxy, "eos", G_CALLBACK(onEosCallback), this);
 }
 
 namespace {
@@ -94,9 +96,11 @@ RemovePeerElements(
 
 GstWebRTCPeer2::~GstWebRTCPeer2()
 {
-    g_signal_handler_disconnect(_messageProxy, _teeHandlerId);
-    g_signal_handler_disconnect(_messageProxy, _messageHandlerId);
-    g_signal_handler_disconnect(_messageProxy, _eosHandlerId);
+    MessageProxy* messageProxy = _messageProxyPtr.get();
+
+    g_signal_handler_disconnect(messageProxy, _teeHandlerId);
+    g_signal_handler_disconnect(messageProxy, _messageHandlerId);
+    g_signal_handler_disconnect(messageProxy, _eosHandlerId);
 
     GstElement* rtcbin = webRtcBin();
     if(rtcbin) {
@@ -104,7 +108,7 @@ GstWebRTCPeer2::~GstWebRTCPeer2()
             g_signal_handler_disconnect(rtcbin, _onNegotiationNeededHandlerId);
     }
 
-    g_object_unref(_messageProxy);
+    _messageProxyPtr.reset();
 
     if(!_teePtr)
         return; // nothing to teardown
@@ -306,6 +310,8 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
     if(!rtcbin)
         return;
 
+    MessageProxy* messageProxy = _messageProxyPtr.get();
+
     auto onNegotiationNeededCallback =
         + [] (GstElement* rtcbin, gpointer* userData) {
             PeerData* data = reinterpret_cast<PeerData*>(userData);
@@ -315,7 +321,7 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
         rtcbin,
         "on-negotiation-needed",
         G_CALLBACK(onNegotiationNeededCallback),
-        new PeerData(_messageProxy, rtcbin, log(), "on-negotiation-needed"),
+        new PeerData(messageProxy, rtcbin, log(), "on-negotiation-needed"),
         PeerData::Destroy,
         G_CONNECT_DEFAULT);
 
@@ -328,7 +334,7 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
             rtcbin,
             "notify::ice-gathering-state",
             G_CALLBACK(onIceGatheringStateChangedCallback),
-            _messageProxy,
+            messageProxy,
             G_CONNECT_DEFAULT);
     }
 
@@ -340,7 +346,7 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
         rtcbin,
         "on-ice-candidate",
         G_CALLBACK(onIceCandidateCallback),
-        _messageProxy,
+        messageProxy,
         G_CONNECT_DEFAULT);
 }
 
@@ -515,6 +521,7 @@ void GstWebRTCPeer2::onSetRemoteDescription(
 void GstWebRTCPeer2::setRemoteSdp(const std::string& sdp) noexcept
 {
     GstElement* rtcbin = webRtcBin();
+    MessageProxy* messageProxy = _messageProxyPtr.get();
 
     GstSDPMessage* sdpMessage;
     gst_sdp_message_new(&sdpMessage);
@@ -543,7 +550,7 @@ void GstWebRTCPeer2::setRemoteSdp(const std::string& sdp) noexcept
 
     GstPromise* promise = gst_promise_new_with_change_func(
         onSetRemoteDescriptionCallback,
-        new PeerData(_messageProxy, rtcbin, log(), "set-remote-description"),
+        new PeerData(messageProxy, rtcbin, log(), "set-remote-description"),
         PeerData::Destroy);
 
     g_signal_emit_by_name(

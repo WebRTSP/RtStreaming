@@ -79,6 +79,6 @@ private:
 
     bool _prerolled = false;
 
-    std::set<MessageProxyPtr, std::less<>> _waitingPeers;
+    std::set<MessageProxy*> _waitingPeers;
     std::unordered_set<MessageProxy*> _peers;
 };
