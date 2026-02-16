@@ -40,9 +40,9 @@ protected:
 
     virtual void prepare(const WebRTCConfigPtr&) noexcept = 0;
 
-private:
-    gboolean onBusMessage(GstMessage*) noexcept;
+    virtual gboolean onBusMessage(GstMessage*) noexcept;
 
+private:
     static void onNegotiationNeeded(
         GstElement* rtcbin) noexcept;
     static void onIceGatheringStateChanged(
