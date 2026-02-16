@@ -15,12 +15,12 @@
 #include "Helpers.h"
 
 
-GstWebRTCPeer::GstWebRTCPeer(Role role) :
+GstWebRTCPeer::GstWebRTCPeer(Role role) noexcept :
     _role(role)
 {
 }
 
-GstWebRTCPeer::~GstWebRTCPeer()
+GstWebRTCPeer::~GstWebRTCPeer() noexcept
 {
     stop();
 
@@ -67,7 +67,7 @@ void GstWebRTCPeer::stop() noexcept
     setState(GST_STATE_NULL);
 }
 
-gboolean GstWebRTCPeer::onBusMessage(GstMessage* message)
+gboolean GstWebRTCPeer::onBusMessage(GstMessage* message) noexcept
 {
     switch(GST_MESSAGE_TYPE(message)) {
         case GST_MESSAGE_EOS:
@@ -130,7 +130,7 @@ gboolean GstWebRTCPeer::onBusMessage(GstMessage* message)
 void GstWebRTCPeer::postIceCandidate(
     GstElement* rtcbin,
     guint mlineIndex,
-    const gchar* candidate)
+    const gchar* candidate) noexcept
 {
     GValue candidateValue = G_VALUE_INIT;
     g_value_init(&candidateValue, G_TYPE_STRING);
@@ -181,7 +181,7 @@ void GstWebRTCPeer::postSdp(
 // will be called from streaming thread
 void GstWebRTCPeer::postEos(
     GstElement* rtcbin,
-    gboolean error)
+    gboolean error) noexcept
 {
     GstStructure* structure =
         gst_structure_new(
@@ -283,7 +283,7 @@ void GstWebRTCPeer::setWebRtcBin(
 // will be called from streaming thread
 void GstWebRTCPeer::onOfferCreated(
     GstElement* rtcbin,
-    GstPromise* promise)
+    GstPromise* promise) noexcept
 {
     GstPromisePtr promisePtr(promise);
 
@@ -304,7 +304,7 @@ void GstWebRTCPeer::onOfferCreated(
 }
 
 // will be called from streaming thread
-void GstWebRTCPeer::onNegotiationNeeded(GstElement* rtcbin)
+void GstWebRTCPeer::onNegotiationNeeded(GstElement* rtcbin) noexcept
 {
     auto onOfferCreatedCallback =
         + [] (GstPromise* promise, gpointer userData) {
@@ -323,7 +323,7 @@ void GstWebRTCPeer::onNegotiationNeeded(GstElement* rtcbin)
 // will be called from streaming thread
 void GstWebRTCPeer::onAnswerCreated(
     GstElement* rtcbin,
-    GstPromise* promise)
+    GstPromise* promise) noexcept
 {
     GstPromisePtr promisePtr(promise);
 
@@ -347,7 +347,7 @@ void GstWebRTCPeer::onAnswerCreated(
 }
 
 // will be called from streaming thread
-void GstWebRTCPeer::onIceGatheringStateChanged(GstElement* rtcbin)
+void GstWebRTCPeer::onIceGatheringStateChanged(GstElement* rtcbin) noexcept
 {
     GstWebRTCICEGatheringState state = GST_WEBRTC_ICE_GATHERING_STATE_NEW;
     g_object_get(rtcbin, "ice-gathering-state", &state, NULL);
@@ -359,7 +359,7 @@ void GstWebRTCPeer::onIceGatheringStateChanged(GstElement* rtcbin)
 // will be called from streaming thread
 void GstWebRTCPeer::onSetRemoteDescription(
     GstElement* rtcbin,
-    GstPromise* promise)
+    GstPromise* promise) noexcept
 {
     GstPromisePtr promisePtr(promise);
 

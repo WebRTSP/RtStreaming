@@ -2,6 +2,8 @@
 
 #include <functional>
 
+#include <gst/webrtc/webrtc_fwd.h>
+
 #include "CxxPtr/GstPtr.h"
 
 #include "GstWebRTCPeerBase.h"
@@ -25,8 +27,8 @@ protected:
         Streamer
     };
 
-    GstWebRTCPeer(Role);
-    ~GstWebRTCPeer();
+    GstWebRTCPeer(Role) noexcept;
+    ~GstWebRTCPeer() noexcept;
 
     void setPipeline(GstElementPtr&&) noexcept override;
     void setWebRtcBin(const WebRTCConfig&, GstElementPtr&&) noexcept override;
@@ -39,33 +41,33 @@ protected:
     virtual void prepare(const WebRTCConfigPtr&) noexcept = 0;
 
 private:
-    gboolean onBusMessage(GstMessage*);
+    gboolean onBusMessage(GstMessage*) noexcept;
 
     static void onNegotiationNeeded(
-        GstElement* rtcbin);
+        GstElement* rtcbin) noexcept;
     static void onIceGatheringStateChanged(
-        GstElement* rtcbin);
+        GstElement* rtcbin) noexcept;
 
     static void postIceCandidate(
         GstElement* rtcbin,
         guint mlineIndex,
-        const gchar* candidate);
+        const gchar* candidate) noexcept;
     static void postSdp(
         GstElement* rtcbin,
         const gchar* sdp);
     static void postEos(
         GstElement* rtcbin,
-        gboolean error);
+        gboolean error) noexcept;
 
     static void onOfferCreated(
         GstElement* rtcbin,
-        GstPromise*);
+        GstPromise*) noexcept;
     static void onAnswerCreated(
         GstElement* rtcbin,
-        GstPromise*);
+        GstPromise*) noexcept;
     static void onSetRemoteDescription(
         GstElement* rtcbin,
-        GstPromise*);
+        GstPromise*) noexcept;
 
 private:
     const Role _role;
