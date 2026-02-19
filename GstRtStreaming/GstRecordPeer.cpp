@@ -3,9 +3,6 @@
 #include <cassert>
 #include <atomic>
 
-#include <netdb.h>
-#include <arpa/inet.h>
-
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
 #include <gst/webrtc/rtptransceiver.h>

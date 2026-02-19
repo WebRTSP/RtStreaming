@@ -2,16 +2,12 @@
 
 #include <cassert>
 
-#include <netdb.h>
-#include <arpa/inet.h>
-
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
 #include <gst/webrtc/rtptransceiver.h>
 
 #include <CxxPtr/GlibPtr.h>
 
-#include "Helpers.h"
 #include "GstWebRTCPeer2.h"
 
 

@@ -9,8 +9,6 @@
 #include <CxxPtr/GlibPtr.h>
 #include <CxxPtr/GstPtr.h>
 
-#include "Helpers.h"
-
 
 GstReStreamer::GstReStreamer(
     const std::string& sourceUrl,

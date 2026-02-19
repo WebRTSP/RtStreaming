@@ -9,8 +9,6 @@
 #include <CxxPtr/GlibPtr.h>
 #include <CxxPtr/GstWebRtcPtr.h>
 
-#include "Helpers.h"
-
 
 GstWebRTCPeer2::GstWebRTCPeer2(MessageProxyPtr&& messageProxyPtr) :
     _messageProxyPtr(std::move(messageProxyPtr))
