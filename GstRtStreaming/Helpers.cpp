@@ -1,7 +1,9 @@
 #include "Helpers.h"
 
+#if !defined(_WIN32) && !_WIN32
 #include <netdb.h>
 #include <arpa/inet.h>
+#endif
 
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
@@ -93,6 +95,7 @@ void TryResolveMDNSIceCandidate(
 
     resolvedCandidate->clear();
 
+#if !defined(_WIN32) && !_WIN32
     if(candidate.empty())
         return;
 
@@ -171,6 +174,7 @@ void TryResolveMDNSIceCandidate(
             }
         }
     }
+#endif
 }
 
 }
