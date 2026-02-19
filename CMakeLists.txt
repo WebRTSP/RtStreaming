@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(CMAKE_CXX_STANDARD 17)
-
 project(RtStreaming)
 
-if(ANDROID)
+if(ANDROID OR WIN32)
     set(ONVIF_SUPPORT_DEFAULT OFF)
 else()
     set(ONVIF_SUPPORT_DEFAULT ON)
@@ -46,11 +44,12 @@ if(ONVIF_SUPPORT)
 endif()
 
 file(GLOB SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    *.cpp
     *.h
-    *.cmake)
+    *.cmake
+)
 
-add_library(${PROJECT_NAME} ${SOURCES})
+add_library(${PROJECT_NAME} INTERFACE ${SOURCES})
 target_link_libraries(${PROJECT_NAME}
-    GstRtStreaming)
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+    INTERFACE
+        GstRtStreaming
+)
