@@ -5,7 +5,7 @@
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
 #include <gst/webrtc/rtptransceiver.h>
-#include <agent.h>
+#include <nice/agent.h>
 
 #include <CxxPtr/GlibPtr.h>
 #include <CxxPtr/GstPtr.h>
