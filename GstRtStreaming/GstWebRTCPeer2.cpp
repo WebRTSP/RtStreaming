@@ -169,7 +169,8 @@ void GstWebRTCPeer2::postIceCandidate(
     guint mlineIndex,
     const gchar* candidate)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 
@@ -205,7 +206,8 @@ void GstWebRTCPeer2::postSdp(
     GstElement* rtcbin,
     const gchar* sdp)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 
@@ -238,7 +240,8 @@ void GstWebRTCPeer2::postEos(
     GstElement* rtcbin,
     gboolean error)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 

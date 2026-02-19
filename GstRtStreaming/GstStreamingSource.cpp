@@ -16,7 +16,8 @@ void GstStreamingSource::PostLog(
     spdlog::level::level_enum level,
     const std::string& logMessage)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(element);
+    GstBusPtr busPtr(gst_element_get_bus(element));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 
@@ -232,7 +233,8 @@ void GstStreamingSource::onTeePadRemoved()
 // will be called from streaming thread
 void GstStreamingSource::postTeeAvailable(GstElement* tee)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(tee);
+    GstBusPtr busPtr(gst_element_get_bus(tee));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 
@@ -248,7 +250,8 @@ void GstStreamingSource::postTeeAvailable(GstElement* tee)
 // will be called from streaming thread
 void GstStreamingSource::postTeePadAdded(GstElement* tee)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(tee);
+    GstBusPtr busPtr(gst_element_get_bus(tee));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 
@@ -264,7 +267,8 @@ void GstStreamingSource::postTeePadAdded(GstElement* tee)
 // will be called from streaming thread
 void GstStreamingSource::postTeePadRemoved(GstElement* tee)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(tee);
+    GstBusPtr busPtr(gst_element_get_bus(tee));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 
@@ -391,7 +395,8 @@ std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
 
 void GstStreamingSource::destroyPeer(MessageProxy* messageProxy)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(pipeline());
+    GstBusPtr busPtr(gst_element_get_bus(pipeline()));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 

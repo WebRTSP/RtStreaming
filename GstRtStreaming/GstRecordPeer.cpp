@@ -91,7 +91,8 @@ void GstRecordPeer::postIceCandidate(
     guint mlineIndex,
     const gchar* candidate)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 
@@ -127,7 +128,8 @@ void GstRecordPeer::postSdp(
     GstElement* rtcbin,
     const gchar* sdp)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 
@@ -160,7 +162,8 @@ void GstRecordPeer::postEos(
     GstElement* rtcbin,
     gboolean error)
 {
-    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    GstBus* bus = busPtr.get();
     if(!bus)
         return;
 

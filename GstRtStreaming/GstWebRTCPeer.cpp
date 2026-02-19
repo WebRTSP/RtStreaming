@@ -145,7 +145,8 @@ void GstWebRTCPeer::postIceCandidate(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    GstBus* bus = busPtr.get();
     gst_bus_post(bus, message);
 }
 
@@ -169,7 +170,8 @@ void GstWebRTCPeer::postSdp(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    GstBus* bus = busPtr.get();
     gst_bus_post(bus, message);
 }
 
@@ -187,7 +189,8 @@ void GstWebRTCPeer::postEos(
     GstMessage* message =
         gst_message_new_application(GST_OBJECT(rtcbin), structure);
 
-    g_autoptr(GstBus) bus = gst_element_get_bus(rtcbin);
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    GstBus* bus = busPtr.get();
     gst_bus_post(bus, message);
 }
 

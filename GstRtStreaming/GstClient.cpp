@@ -55,10 +55,14 @@ void GstClient::prepare(const WebRTCConfigPtr& webRTCConfig) noexcept
             if(GST_PAD_DIRECTION(pad) != GST_PAD_SRC)
                 return;
 
-            g_autoptr(GstCaps) padCaps = gst_pad_get_current_caps(pad);
-            g_autoptr(GstCaps) h264Caps = gst_caps_from_string("application/x-rtp, media=video, encoding-name=H264");
-            g_autoptr(GstCaps) vp8Caps = gst_caps_from_string("application/x-rtp, media=video, encoding-name=VP8");
-            g_autoptr(GstCaps) opusCaps = gst_caps_from_string("application/x-rtp, media=audio, encoding-name=OPUS");
+            GstCapsPtr padCapsPtr(gst_pad_get_current_caps(pad));
+            GstCapsPtr h264CapsPtr(gst_caps_from_string("application/x-rtp, media=video, encoding-name=H264"));
+            GstCapsPtr vp8CapsPtr(gst_caps_from_string("application/x-rtp, media=video, encoding-name=VP8"));
+            GstCapsPtr opusCapsPtr(gst_caps_from_string("application/x-rtp, media=audio, encoding-name=OPUS"));
+            GstCaps* padCaps = padCapsPtr.get();
+            GstCaps* h264Caps = h264CapsPtr.get();
+            GstCaps* vp8Caps = vp8CapsPtr.get();
+            GstCaps* opusCaps = opusCapsPtr.get();
 
             const gchar* decodeBinDescription = nullptr;
             bool video = true;

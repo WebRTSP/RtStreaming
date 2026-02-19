@@ -143,7 +143,8 @@ void GstReStreamer::srcPadAdded(
             GstMessage* message =
                 gst_message_new_application(GST_OBJECT(element), structure);
 
-            g_autoptr(GstBus) bus = gst_element_get_bus(element);
+            GstBusPtr busPtr(gst_element_get_bus(element));
+            GstBus* bus = busPtr.get();
             gst_bus_post(bus, message);
 
             return GST_PAD_PROBE_REMOVE;
