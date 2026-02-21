@@ -1,13 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 
-if(ANDROID OR WIN32)
-    set(ONVIF_SUPPORT_DEFAULT OFF)
-else()
-    set(ONVIF_SUPPORT_DEFAULT ON)
-endif()
-
-option(ONVIF_SUPPORT "ONVIF support" ${ONVIF_SUPPORT_DEFAULT})
-
 project(GstRtStreaming)
 
 if(NOT WIN32)
