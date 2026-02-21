@@ -37,9 +37,15 @@ bool GstReStreamer2::prepare() noexcept
         return true; // already prepared
 
     _h264CapsPtr.reset(gst_caps_from_string("video/x-h264"));
+#if USE_H265
+    _h265CapsPtr.reset(gst_caps_from_string("video/x-h265"));
+#endif
     _vp8CapsPtr.reset(gst_caps_from_string("video/x-vp8"));
 
     GstCapsPtr supportedCapsPtr(gst_caps_copy(_h264CapsPtr.get()));
+#if USE_H265
+    gst_caps_append(supportedCapsPtr.get(), gst_caps_copy(_h265CapsPtr.get()));
+#endif
     gst_caps_append(supportedCapsPtr.get(), gst_caps_copy(_vp8CapsPtr.get()));
     GstCaps* supportedCaps = supportedCapsPtr.get();
 
@@ -113,6 +119,21 @@ void GstReStreamer2::srcPadAdded(
             const std::string caps = "application/x-rtp,profile-level-id=(string)" + _forceH264ProfileLevelId;
             gst_util_set_object_arg(G_OBJECT(capsSetterPtr.get()), "caps", caps.c_str());
         }
+#if USE_H265
+    } else if(gst_caps_is_always_compatible(caps, _h265CapsPtr.get())) {
+        std::string repayPipelineDesc =
+            "h265parse config-interval=-1 ! rtph265pay pt=97";
+        payBin = gst_parse_bin_from_description(
+            repayPipelineDesc.c_str(),
+            TRUE, NULL);
+        gst_bin_add(GST_BIN(pipeline), payBin);
+        gst_element_sync_state_with_parent(payBin);
+
+        GstPad* sink = (GstPad*)payBin->sinkpads->data;
+
+        if(GST_PAD_LINK_OK != gst_pad_link(pad, sink))
+            assert(false);
+#endif
     } else if(gst_caps_is_always_compatible(caps, _vp8CapsPtr.get())) {
         payBin =
             gst_parse_bin_from_description(
@@ -144,6 +165,9 @@ void GstReStreamer2::noMorePads(GstElement* /*decodebin*/)
 void GstReStreamer2::cleanup() noexcept
 {
     _h264CapsPtr.reset();
+#if USE_H265
+    _h265CapsPtr.reset();
+#endif
     _vp8CapsPtr.reset();
 
     GstStreamingSource::cleanup();

@@ -26,5 +26,8 @@ private:
     const std::string _forceH264ProfileLevelId;
 
     GstCapsPtr _h264CapsPtr;
+#if USE_H265
+    GstCapsPtr _h265CapsPtr;
+#endif
     GstCapsPtr _vp8CapsPtr;
 };

@@ -82,6 +82,9 @@ endif()
 
 add_library(${PROJECT_NAME} ${SOURCES} ${ONVIF_SOURCES})
 target_compile_definitions(${PROJECT_NAME} PUBLIC -DGST_USE_UNSTABLE_API)
+if(H265_SUPPORT)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_H265)
+endif()
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
