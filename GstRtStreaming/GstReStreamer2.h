@@ -8,15 +8,15 @@ class GstReStreamer2 : public GstStreamingSource
 public:
     GstReStreamer2(
         const std::string& sourceUrl,
-        const std::string& forceH264ProfileLevelId);
+        const std::string& forceH264ProfileLevelId) noexcept;
 
-    void setSourceUrl(const std::string&);
+protected:
+    void setSourceUrl(const std::string&) noexcept;
     bool prepare() noexcept override;
-    void cleanup() noexcept override;
 
 private:
-    void srcPadAdded(GstElement* decodebin, GstPad*);
-    void noMorePads(GstElement* decodebin);
+    void srcPadAdded(GstElement* decodebin, GstPad*) noexcept;
+    void noMorePads(GstElement* decodebin) noexcept;
 
 private:
     std::string _sourceUrl;

@@ -14,7 +14,7 @@
 
 GstReStreamer2::GstReStreamer2(
     const std::string& sourceUrl,
-    const std::string& forceH264ProfileLevelId) :
+    const std::string& forceH264ProfileLevelId) noexcept:
     _sourceUrl(sourceUrl),
     _forceH264ProfileLevelId(forceH264ProfileLevelId),
     _h264CapsPtr(gst_caps_from_string("video/x-h264")),
@@ -25,7 +25,7 @@ GstReStreamer2::GstReStreamer2(
 {
 }
 
-void GstReStreamer2::setSourceUrl(const std::string& sourceUrl)
+void GstReStreamer2::setSourceUrl(const std::string& sourceUrl) noexcept
 {
     _sourceUrl = sourceUrl;
 }
@@ -79,7 +79,7 @@ bool GstReStreamer2::prepare() noexcept
 
 void GstReStreamer2::srcPadAdded(
     GstElement* /*decodebin*/,
-    GstPad* pad)
+    GstPad* pad) noexcept
 {
     GstElement* pipeline = this->pipeline();
 
@@ -151,6 +151,6 @@ void GstReStreamer2::srcPadAdded(
     setTee(tee);
 }
 
-void GstReStreamer2::noMorePads(GstElement* /*decodebin*/)
+void GstReStreamer2::noMorePads(GstElement* /*decodebin*/) noexcept
 {
 }
