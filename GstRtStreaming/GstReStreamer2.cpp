@@ -16,7 +16,12 @@ GstReStreamer2::GstReStreamer2(
     const std::string& sourceUrl,
     const std::string& forceH264ProfileLevelId) :
     _sourceUrl(sourceUrl),
-    _forceH264ProfileLevelId(forceH264ProfileLevelId)
+    _forceH264ProfileLevelId(forceH264ProfileLevelId),
+    _h264CapsPtr(gst_caps_from_string("video/x-h264")),
+#if USE_H265
+    _h265CapsPtr(gst_caps_from_string("video/x-h265")),
+#endif
+    _vp8CapsPtr(gst_caps_from_string("video/x-vp8"))
 {
 }
 
@@ -29,12 +34,6 @@ bool GstReStreamer2::prepare() noexcept
 {
     if(pipeline())
         return true; // already prepared
-
-    _h264CapsPtr.reset(gst_caps_from_string("video/x-h264"));
-#if USE_H265
-    _h265CapsPtr.reset(gst_caps_from_string("video/x-h265"));
-#endif
-    _vp8CapsPtr.reset(gst_caps_from_string("video/x-vp8"));
 
     GstCapsPtr supportedCapsPtr(gst_caps_copy(_h264CapsPtr.get()));
 #if USE_H265
@@ -154,15 +153,4 @@ void GstReStreamer2::srcPadAdded(
 
 void GstReStreamer2::noMorePads(GstElement* /*decodebin*/)
 {
-}
-
-void GstReStreamer2::cleanup() noexcept
-{
-    _h264CapsPtr.reset();
-#if USE_H265
-    _h265CapsPtr.reset();
-#endif
-    _vp8CapsPtr.reset();
-
-    GstStreamingSource::cleanup();
 }
