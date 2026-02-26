@@ -38,7 +38,7 @@ GstStreamingSource::~GstStreamingSource()
 {
     assert(_peers.empty());
 
-    cleanup();
+    GstStreamingSource::cleanup();
 }
 
 void GstStreamingSource::setState(GstState state) noexcept
