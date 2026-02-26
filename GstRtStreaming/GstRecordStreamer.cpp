@@ -26,6 +26,11 @@ GstRecordStreamer::GstRecordStreamer(
 {
 }
 
+GstRecordStreamer::~GstRecordStreamer() noexcept
+{
+    GstRecordStreamer::cleanup();
+}
+
 GstElement* GstRecordStreamer::webRtcBin() const noexcept
 {
     return _rtcbinPtr.get();

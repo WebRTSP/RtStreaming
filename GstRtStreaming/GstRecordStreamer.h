@@ -20,6 +20,7 @@ public:
         const std::optional<RecordOptions>& recordOptions = {},
         const RecorderConnectedCallback& = RecorderConnectedCallback(),
         const RecorderDisconnectedCallback& = RecorderDisconnectedCallback());
+    ~GstRecordStreamer() noexcept override;
 
     std::unique_ptr<WebRTCPeer> createRecordPeer() noexcept override;
 
