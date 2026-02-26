@@ -10,9 +10,6 @@ public:
         const std::string& sourceUrl,
         const std::string& forceH264ProfileLevelId);
 
-protected:
-    GstReStreamer2(const std::string& forceH264ProfileLevelId);
-
     void setSourceUrl(const std::string&);
     bool prepare() noexcept override;
     void cleanup() noexcept override;

@@ -298,7 +298,7 @@ ONVIFReStreamer::ONVIFReStreamer(
     const std::string& forceH264ProfileLevelId,
     const std::optional<std::string>& username,
     const std::optional<std::string>& password) noexcept :
-    GstReStreamer2(forceH264ProfileLevelId),
+    GstReStreamer2(std::string(), forceH264ProfileLevelId),
     _p(std::make_unique<Private>(this, sourceUrl, username, password))
 {
 }
