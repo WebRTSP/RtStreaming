@@ -14,7 +14,7 @@
 void GstStreamingSource::PostLog(
     GstElement* element,
     spdlog::level::level_enum level,
-    const std::string& logMessage)
+    const std::string& logMessage) noexcept
 {
     GstBusPtr busPtr(gst_element_get_bus(element));
     GstBus* bus = busPtr.get();
@@ -76,7 +76,7 @@ void GstStreamingSource::stop() noexcept
     setState(GST_STATE_NULL);
 }
 
-gboolean GstStreamingSource::onBusMessage(GstMessage* message)
+gboolean GstStreamingSource::onBusMessage(GstMessage* message) noexcept
 {
     switch(GST_MESSAGE_TYPE(message)) {
         case GST_MESSAGE_ASYNC_DONE:
@@ -149,7 +149,7 @@ gboolean GstStreamingSource::onBusMessage(GstMessage* message)
     return TRUE;
 }
 
-void GstStreamingSource::onEos(bool error)
+void GstStreamingSource::onEos(bool error) noexcept
 {
     _waitingPeers.clear();
 
@@ -205,7 +205,7 @@ bool GstStreamingSource::hasPeers() const noexcept
     return peerCount() > 0;
 }
 
-void GstStreamingSource::onTeeAvailable(GstElement* tee)
+void GstStreamingSource::onTeeAvailable(GstElement* tee) noexcept
 {
     GstElementPtr teePipelinePtr(GST_ELEMENT(gst_object_get_parent(GST_OBJECT(tee))));
 
@@ -218,20 +218,20 @@ void GstStreamingSource::onTeeAvailable(GstElement* tee)
     }
 }
 
-void GstStreamingSource::onTeePadAdded()
+void GstStreamingSource::onTeePadAdded() noexcept
 {
     if(hasPeers())
         onPeerAttached();
 }
 
-void GstStreamingSource::onTeePadRemoved()
+void GstStreamingSource::onTeePadRemoved() noexcept
 {
     if(!hasPeers()) // only fakesink is linked
         onLastPeerDetached();
 }
 
 // will be called from streaming thread
-void GstStreamingSource::postTeeAvailable(GstElement* tee)
+void GstStreamingSource::postTeeAvailable(GstElement* tee) noexcept
 {
     GstBusPtr busPtr(gst_element_get_bus(tee));
     GstBus* bus = busPtr.get();
@@ -248,7 +248,7 @@ void GstStreamingSource::postTeeAvailable(GstElement* tee)
 }
 
 // will be called from streaming thread
-void GstStreamingSource::postTeePadAdded(GstElement* tee)
+void GstStreamingSource::postTeePadAdded(GstElement* tee) noexcept
 {
     GstBusPtr busPtr(gst_element_get_bus(tee));
     GstBus* bus = busPtr.get();
@@ -265,7 +265,7 @@ void GstStreamingSource::postTeePadAdded(GstElement* tee)
 }
 
 // will be called from streaming thread
-void GstStreamingSource::postTeePadRemoved(GstElement* tee)
+void GstStreamingSource::postTeePadRemoved(GstElement* tee) noexcept
 {
     GstBusPtr busPtr(gst_element_get_bus(tee));
     GstBus* bus = busPtr.get();
@@ -353,7 +353,7 @@ void GstStreamingSource::onLastPeerDetached() noexcept
         cleanup();
 }
 
-void GstStreamingSource::onPeerDestroyed(MessageProxy* messageProxy)
+void GstStreamingSource::onPeerDestroyed(MessageProxy* messageProxy) noexcept
 {
     if(const auto it = _waitingPeers.find(messageProxy); it != _waitingPeers.end()) {
         _waitingPeers.erase(it);
@@ -393,7 +393,7 @@ std::unique_ptr<WebRTCPeer> GstStreamingSource::createPeer() noexcept
     return std::move(peerPtr);
 }
 
-void GstStreamingSource::destroyPeer(MessageProxy* messageProxy)
+void GstStreamingSource::destroyPeer(MessageProxy* messageProxy) noexcept
 {
     GstBusPtr busPtr(gst_element_get_bus(pipeline()));
     GstBus* bus = busPtr.get();

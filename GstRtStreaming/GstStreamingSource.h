@@ -22,12 +22,12 @@ public:
 
 protected:
     // thread safe
-    static void PostLog(GstElement*, spdlog::level::level_enum, const std::string& message);
+    static void PostLog(GstElement*, spdlog::level::level_enum, const std::string& message) noexcept;
 
-    GstStreamingSource() = default;
+    GstStreamingSource() noexcept = default;
     GstStreamingSource& operator= (GstStreamingSource&) = delete;
 
-    void onEos(bool error);
+    void onEos(bool error) noexcept;
 
     void setState(GstState state) noexcept;
     void pause() noexcept;
@@ -54,21 +54,21 @@ protected:
     void destroyPeers() noexcept;
 
 private:
-    const std::shared_ptr<spdlog::logger>& log() const
+    const std::shared_ptr<spdlog::logger>& log() const noexcept
         { return _log; }
 
-    gboolean onBusMessage(GstMessage*);
+    gboolean onBusMessage(GstMessage*) noexcept;
 
-    static void postTeeAvailable(GstElement* tee);
-    static void postTeePadAdded(GstElement* tee);
-    static void postTeePadRemoved(GstElement* tee);
+    static void postTeeAvailable(GstElement* tee) noexcept;
+    static void postTeePadAdded(GstElement* tee) noexcept;
+    static void postTeePadRemoved(GstElement* tee) noexcept;
 
-    void onTeeAvailable(GstElement* tee);
-    void onTeePadAdded();
-    void onTeePadRemoved();
+    void onTeeAvailable(GstElement* tee) noexcept;
+    void onTeePadAdded() noexcept;
+    void onTeePadRemoved() noexcept;
 
-    void onPeerDestroyed(MessageProxy*);
-    void destroyPeer(MessageProxy*);
+    void onPeerDestroyed(MessageProxy*) noexcept;
+    void destroyPeer(MessageProxy*) noexcept;
 
 private:
     const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
