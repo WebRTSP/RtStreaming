@@ -221,7 +221,7 @@ void GstWebRTCPeer::setWebRtcBin(
     if(!rtcbinPtr || webRtcBin())
         return;
 
-   GstWebRTCPeerBase::setWebRtcBin(webRTCConfig, std::move(rtcbinPtr));
+    GstWebRTCPeerBase::setWebRtcBin(webRTCConfig, std::move(rtcbinPtr));
 
     GstElement* rtcbin = webRtcBin();
 
