@@ -100,6 +100,11 @@ gboolean GstWebRTCPeer::onBusMessage(GstMessage* message) noexcept
             } else if(gst_message_has_name(message, "sdp")) {
                 const gchar* sdp = gst_structure_get_string(structure, "sdp");
                 onSdp(sdp);
+            } else if(gst_message_has_name(message, "connection-state")) {
+                guint state = GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED;
+                gst_structure_get_uint(structure, "state", &state);
+                if(state == GST_WEBRTC_PEER_CONNECTION_STATE_FAILED)
+                    onEos(true);
             } else if(gst_message_has_name(message, "eos")) {
                 gboolean error = FALSE;
                 gst_structure_get_boolean(structure, "error", &error);
