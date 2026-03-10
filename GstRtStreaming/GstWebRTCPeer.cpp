@@ -122,6 +122,23 @@ gboolean GstWebRTCPeer::onBusMessage(GstMessage* message) noexcept
 }
 
 // will be called from streaming thread
+void GstWebRTCPeer::postConnectionState(
+    GstElement* rtcbin,
+    GstWebRTCPeerConnectionState state) noexcept
+{
+    GstStructure* structure = gst_structure_new(
+        "connection-state",
+        "state", G_TYPE_UINT, state,
+        nullptr);
+
+    GstMessage* message = gst_message_new_application(GST_OBJECT(rtcbin), structure);
+
+    GstBusPtr busPtr(gst_element_get_bus(rtcbin));
+    GstBus* bus = busPtr.get();
+    gst_bus_post(bus, message);
+}
+
+// will be called from streaming thread
 void GstWebRTCPeer::postIceCandidate(
     GstElement* rtcbin,
     guint mlineIndex,
@@ -224,6 +241,18 @@ void GstWebRTCPeer::setWebRtcBin(
     GstWebRTCPeerBase::setWebRtcBin(webRTCConfig, std::move(rtcbinPtr));
 
     GstElement* rtcbin = webRtcBin();
+
+    auto onConnectionStateChangedCallback =
+        + [] (GstElement* rtcbin, GParamSpec*, gpointer userData) {
+            GstWebRTCPeerConnectionState state = GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED;
+            g_object_get(rtcbin, "connection-state", &state, NULL);
+            postConnectionState(rtcbin, state);
+        };
+    g_signal_connect(
+        rtcbin,
+        "notify::connection-state",
+        G_CALLBACK(onConnectionStateChangedCallback),
+        nullptr);
 
     if(Role::Streamer == _role) {
         auto onNegotiationNeededCallback =

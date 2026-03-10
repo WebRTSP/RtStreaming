@@ -48,6 +48,9 @@ private:
     static void onIceGatheringStateChanged(
         GstElement* rtcbin) noexcept;
 
+    static void postConnectionState(
+        GstElement* rtcbin,
+        GstWebRTCPeerConnectionState) noexcept;
     static void postIceCandidate(
         GstElement* rtcbin,
         guint mlineIndex,
