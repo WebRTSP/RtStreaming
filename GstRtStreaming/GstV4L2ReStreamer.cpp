@@ -1,4 +1,4 @@
-#include "GstV4L2Streamer.h"
+#include "GstV4L2ReStreamer.h"
 
 #include <cassert>
 
@@ -16,7 +16,7 @@
 
 static const auto Log = GstRtStreamingLog;
 
-GstV4L2Streamer::GstV4L2Streamer(
+GstV4L2ReStreamer::GstV4L2ReStreamer(
     const std::optional<std::string>& edidFilePath,
     const std::optional<VideoResolution>& resolution,
     const std::optional<std::string>& h264Level,
@@ -28,7 +28,7 @@ GstV4L2Streamer::GstV4L2Streamer(
 {
 }
 
-bool GstV4L2Streamer::setEdid()
+bool GstV4L2ReStreamer::setEdid()
 {
     if(!_edidFilePath) return true;
 
@@ -64,7 +64,7 @@ bool GstV4L2Streamer::setEdid()
     return true;
 }
 
-bool GstV4L2Streamer::prepare() noexcept
+bool GstV4L2ReStreamer::prepare() noexcept
 {
     if(pipeline())
         return true; // already prepared

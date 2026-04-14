@@ -4,7 +4,7 @@
 #include "GstStreamingSource.h"
 
 
-class GstV4L2Streamer : public GstStreamingSource
+class GstV4L2ReStreamer : public GstStreamingSource
 {
 public:
     struct VideoResolution {
@@ -12,7 +12,7 @@ public:
         unsigned height;
     };
 
-    GstV4L2Streamer(
+    GstV4L2ReStreamer(
         const std::optional<std::string>& edidFilePath = std::optional<std::string>(),
         const std::optional<VideoResolution>& resolution = std::optional<VideoResolution>(),
         const std::optional<std::string>& h264Level = std::optional<const std::string>(),
