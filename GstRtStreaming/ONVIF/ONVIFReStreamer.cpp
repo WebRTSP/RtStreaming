@@ -3,9 +3,7 @@
 #include <gsoap/plugin/wsseapi.h>
 
 #include "ONVIF/DeviceBinding.nsmap"
-#include "ONVIF/soapDeviceBindingProxy.h"
-#include "ONVIF/soapMediaBindingProxy.h"
-#include "ONVIF/soapPullPointSubscriptionBindingProxy.h"
+#include "ONVIF/SOAP.h"
 
 #include "CxxPtr/GlibPtr.h"
 #include "CxxPtr/GioPtr.h"
@@ -108,15 +106,19 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
 
     soap_status status;
 
-
-    DeviceBindingProxy deviceProxy(data->sourceUrl.c_str());
+    SOAP soap;
+    AddAuth(soap, data->username, data->password);
 
     _tds__GetCapabilities getCapabilities;
     _tds__GetCapabilitiesResponse getCapabilitiesResponse;
-    AddAuth(deviceProxy.soap, data->username, data->password);
-    status = deviceProxy.GetCapabilities(&getCapabilities, getCapabilitiesResponse);
+    status = soap_call___tds__GetCapabilities(
+        soap,
+        data->sourceUrl.c_str(),
+        nullptr,
+        &getCapabilities,
+        getCapabilitiesResponse);
     if(status != SOAP_OK) {
-        const char* faultString = soap_fault_string(deviceProxy.soap);
+        const char* faultString = soap_fault_string(soap);
         GError* error = g_error_new_literal(SoapDomain, status, faultString ? faultString : "GetCapabilities failed");
         g_task_return_error(task, error);
         return;
@@ -125,14 +127,16 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
     const std::string& mediaEndpoint = getCapabilitiesResponse.Capabilities->Media->XAddr;
 
 
-    MediaBindingProxy mediaProxy(mediaEndpoint.c_str());
-
     _trt__GetProfiles getProfiles;
     _trt__GetProfilesResponse getProfilesResponse;
-    AddAuth(mediaProxy.soap, data->username, data->password);
-    status = mediaProxy.GetProfiles(&getProfiles, getProfilesResponse);
+    status = soap_call___trt__GetProfiles(
+        soap,
+        mediaEndpoint.c_str(),
+        nullptr,
+        &getProfiles,
+        getProfilesResponse);
     if(status != SOAP_OK) {
-        const char* faultString = soap_fault_string(deviceProxy.soap);
+        const char* faultString = soap_fault_string(soap);
         GError* error = g_error_new_literal(SoapDomain, status, faultString ? faultString : "GetProfiles failed");
         g_task_return_error(task, error);
         return;
@@ -149,7 +153,6 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
     }
 
     const tt__Profile *const mediaProfile = getProfilesResponse.Profiles[0];
-
     _trt__GetStreamUri getStreamUri;
     _trt__GetStreamUriResponse getStreamUriResponse;
     getStreamUri.ProfileToken = mediaProfile->token;
@@ -163,10 +166,14 @@ void ONVIFReStreamer::Private::requestMediaUrisTaskFunc(
 
     getStreamUri.StreamSetup = &streamSetup;
 
-    AddAuth(mediaProxy.soap, data->username, data->password);
-    status = mediaProxy.GetStreamUri(&getStreamUri, getStreamUriResponse);
+    status = soap_call___trt__GetStreamUri(
+        soap,
+        mediaEndpoint.c_str(),
+        nullptr,
+        &getStreamUri,
+        getStreamUriResponse);
     if(status != SOAP_OK) {
-        const char* faultString = soap_fault_string(deviceProxy.soap);
+        const char* faultString = soap_fault_string(soap);
         GError* error = g_error_new_literal(SoapDomain, status, faultString ? faultString : "GetStreamUri failed");
         g_task_return_error(task, error);
         return;
