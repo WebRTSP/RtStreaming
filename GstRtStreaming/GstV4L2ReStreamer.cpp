@@ -102,7 +102,7 @@ bool GstV4L2ReStreamer::prepare() noexcept
     GstElementPtr sourceFilterPtr(gst_bin_get_by_name(GST_BIN(pipeline), "sourceFilter"));
     std::string sourceCaps =
         "video/x-raw,"
-        "framerate=30/1,format=UYVY,interlace-mode=(string)progressive";
+        "framerate=30/1,format=UYVY,interlace-mode=(string)progressive,colorimetry=bt601";
     if(_resolution) {
         sourceCaps += ",";
         sourceCaps += "width=" + std::to_string(_resolution->width) + ",";
