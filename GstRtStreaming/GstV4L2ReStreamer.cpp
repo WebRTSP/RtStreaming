@@ -40,7 +40,7 @@ bool GstV4L2ReStreamer::setEdid()
     const gchar* argv[] = { "v4l2-ctl", edidArg.c_str(), "--fix-edid-checksums", nullptr };
     gint waitStatus;
     GError* error = nullptr;
-    GSpawnFlags flags = GSpawnFlags(G_SPAWN_SEARCH_PATH | G_SPAWN_FILE_AND_ARGV_ZERO);
+    GSpawnFlags flags = GSpawnFlags(G_SPAWN_SEARCH_PATH);
     if(!g_spawn_sync(
         nullptr,
         const_cast<gchar**>(argv),
