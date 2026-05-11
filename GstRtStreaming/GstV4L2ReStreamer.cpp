@@ -37,7 +37,7 @@ bool GstV4L2ReStreamer::setEdid()
     const std::string filePrefix = "--set-edid=file=";
     std::string edidArg = filePrefix + *_edidFilePath;
 
-    const gchar* argv[] = { "v4l2-ctl", edidArg.c_str(), "--fix-edid-checksums", nullptr };
+    const gchar* argv[] = { "v4l2-ctl", edidArg.c_str(), nullptr };
     gint waitStatus;
     GError* error = nullptr;
     GSpawnFlags flags = GSpawnFlags(G_SPAWN_SEARCH_PATH);
