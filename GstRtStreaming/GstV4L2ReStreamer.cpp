@@ -30,14 +30,17 @@ GstV4L2ReStreamer::GstV4L2ReStreamer(
 
 bool GstV4L2ReStreamer::setEdid()
 {
-    if(!_edidFilePath) return true;
+    std::string setEdidArg;
+    if(_edidFilePath) {
+        Log()->info("Setting EDID with \"v4l2-ctl\" from \"{}\"...", *_edidFilePath);
+        setEdidArg = "--set-edid=file=";
+        setEdidArg += _edidFilePath.value();
+    } else {
+        Log()->info("Setting EDID to \"type=hdmi\" with \"v4l2-ctl\"...");
+        setEdidArg = "--set-edid=type=hdmi";
+    }
 
-    Log()->info("Setting EDID with \"v4l2-ctl\" from \"{}\"...", *_edidFilePath);
-
-    const std::string filePrefix = "--set-edid=file=";
-    std::string edidArg = filePrefix + *_edidFilePath;
-
-    const gchar* argv[] = { "v4l2-ctl", edidArg.c_str(), nullptr };
+    const gchar* argv[] = { "v4l2-ctl", setEdidArg.c_str(), nullptr };
     gint waitStatus;
     GError* error = nullptr;
     GSpawnFlags flags = GSpawnFlags(G_SPAWN_SEARCH_PATH);
