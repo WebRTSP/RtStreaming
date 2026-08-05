@@ -10,7 +10,7 @@
 
 struct WebRTCPeer
 {
-    virtual ~WebRTCPeer() {}
+    virtual ~WebRTCPeer() noexcept = default;
 
     typedef std::function<void ()> PreparedCallback;
     typedef std::function<
