@@ -15,10 +15,15 @@
 class GstStreamingSource
 {
 public:
+    struct Callbacks;
+
     virtual ~GstStreamingSource();
 
     std::unique_ptr<WebRTCPeer> createPeer() noexcept;
     virtual std::unique_ptr<WebRTCPeer> createRecordPeer() noexcept { return nullptr; }
+
+    void setCallbacks(Callbacks* callbacks, const std::string& id = {}) noexcept
+        { _callbacks = callbacks; _streamerId = id; }
 
 protected:
     // thread safe
@@ -73,6 +78,9 @@ private:
 private:
     const std::shared_ptr<spdlog::logger> _log = GstRtStreamingLog();
 
+    Callbacks* _callbacks = nullptr;
+    std::string _streamerId;
+
     GstElementPtr _pipelinePtr;
     GstElementPtr _teePtr;
     GstElementPtr _fakeSinkPtr;
@@ -81,4 +89,9 @@ private:
 
     std::set<MessageProxy*> _waitingPeers;
     std::unordered_set<MessageProxy*> _peers;
+};
+
+struct GstStreamingSource::Callbacks
+{
+    virtual void onLastPeerDetached(GstStreamingSource*, const std::string& id) noexcept {};
 };
