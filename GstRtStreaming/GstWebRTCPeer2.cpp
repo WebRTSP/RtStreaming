@@ -631,7 +631,6 @@ void GstWebRTCPeer2::internalPrepare() noexcept
                 GST_ELEMENT(gst_object_ref(rtcbin)),
                 nullptr);
 
-
             GstPadPtr teeSrcPadPtr(gst_element_get_request_pad(tee, "src_%u"));
             GstPadPtr queueSinkPadPtr(gst_element_get_static_pad(queue, "sink"));
 
