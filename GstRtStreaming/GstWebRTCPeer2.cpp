@@ -326,6 +326,17 @@ void GstWebRTCPeer2::prepareWebRtcBin() noexcept
         PeerData::Destroy,
         G_CONNECT_DEFAULT);
 
+    auto onConnectionStateChangedCallback =
+        + [] (GstElement* rtcbin, GParamSpec*, MessageProxy* messageProxy) {
+            return GstWebRTCPeer2::onConnectionStateChanged(messageProxy, rtcbin);
+        };
+    g_signal_connect_object(
+        rtcbin,
+        "notify::connection-state",
+        G_CALLBACK(onConnectionStateChangedCallback),
+        messageProxy,
+        G_CONNECT_DEFAULT);
+
     if(!IceGatheringStateBroken) {
         auto onIceGatheringStateChangedCallback =
             + [] (GstElement* rtcbin, GParamSpec*, MessageProxy* messageProxy) {
@@ -451,6 +462,28 @@ void GstWebRTCPeer2::onAnswerCreated(
 
     GCharPtr sdpPtr(gst_sdp_message_as_text(sessionDescription->sdp));
     postSdp(messageProxy, rtcbin, sdpPtr.get());
+}
+
+// will be called from streaming thread
+void GstWebRTCPeer2::onConnectionStateChanged(
+    MessageProxy* messageProxy,
+    GstElement* rtcbin)
+{
+    GstWebRTCPeerConnectionState state = GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED;
+    g_object_get(rtcbin, "connection-state", &state, NULL);
+    switch(state) {
+        case GST_WEBRTC_PEER_CONNECTION_STATE_NEW:
+        case GST_WEBRTC_PEER_CONNECTION_STATE_CONNECTING:
+        case GST_WEBRTC_PEER_CONNECTION_STATE_CONNECTED:
+        case GST_WEBRTC_PEER_CONNECTION_STATE_DISCONNECTED:
+            break;
+        case GST_WEBRTC_PEER_CONNECTION_STATE_FAILED:
+            postEos(messageProxy, rtcbin, true);
+            break;
+        case GST_WEBRTC_PEER_CONNECTION_STATE_CLOSED:
+            postEos(messageProxy, rtcbin, false);
+            break;
+    }
 }
 
 // will be called from streaming thread

@@ -38,6 +38,9 @@ private:
         MessageProxy*,
         GstElement* rtcbin,
         const std::shared_ptr<spdlog::logger>& log);
+    static void onConnectionStateChanged(
+        MessageProxy*,
+        GstElement* rtcbin);
     static void onIceGatheringStateChanged(
         MessageProxy*,
         GstElement* rtcbin);
